@@ -26,11 +26,11 @@ pub mod ggoldca {
 
     pub fn open_position(
         ctx: Context<OpenPosition>,
-        bumps: whirlpool::state::position::OpenPositionBumps,
+        bump: u8,
         tick_lower_index: i32,
         tick_upper_index: i32,
     ) -> ProgramResult {
-        instructions::open_position::handler(ctx, bumps, tick_lower_index, tick_upper_index)
+        instructions::open_position::handler(ctx, bump, tick_lower_index, tick_upper_index)
     }
 
     pub fn deposit_pool(

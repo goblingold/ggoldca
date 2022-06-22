@@ -16,8 +16,7 @@ pub struct VaultAccount {
 }
 
 impl VaultAccount {
-    // TODO
-    pub const SIZE: usize = 0;
+    pub const SIZE: usize = Bumps::SIZE + 1_000;
 }
 
 /// PDA bump seeds
@@ -25,4 +24,8 @@ impl VaultAccount {
 pub struct Bumps {
     pub vault: u8,
     pub lp_token_mint: u8,
+}
+
+impl Bumps {
+    pub const SIZE: usize = 1 + 1;
 }

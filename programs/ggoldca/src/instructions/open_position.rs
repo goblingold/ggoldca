@@ -57,12 +57,16 @@ impl<'info> OpenPosition<'info> {
 
 pub fn handler(
     ctx: Context<OpenPosition>,
-    bumps: whirlpool::state::position::OpenPositionBumps,
+    bump: u8,
     tick_lower_index: i32,
     tick_upper_index: i32,
 ) -> ProgramResult {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
+
+    let bumps = whirlpool::state::position::OpenPositionBumps {
+        position_bump: bump,
+    };
 
     whirlpool::cpi::open_position(
         ctx.accounts.open_position_ctx().with_signer(signer),

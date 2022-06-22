@@ -26,14 +26,14 @@ pub struct InitializeVault<'info> {
         associated_token::mint = input_token_a_mint_address,
         associated_token::authority = vault_account,
     )]
-    pub vault_input_token_a_account: Account<'info, TokenAccount>,
+    pub vault_input_token_a_account: Box<Account<'info, TokenAccount>>,
     #[account(
         init,
         payer = user_signer,
         associated_token::mint = input_token_b_mint_address,
         associated_token::authority = vault_account,
     )]
-    pub vault_input_token_b_account: Account<'info, TokenAccount>,
+    pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
     #[account(
         init,
         payer = user_signer,
