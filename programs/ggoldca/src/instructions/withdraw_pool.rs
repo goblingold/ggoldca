@@ -68,8 +68,8 @@ impl<'info> WithdrawPool<'info> {
 pub fn handler(
     ctx: Context<WithdrawPool>,
     liquidity_amount: u128,
-    max_amount_a: u64,
-    max_amount_b: u64,
+    min_amount_a: u64,
+    min_amount_b: u64,
 ) -> ProgramResult {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
@@ -77,8 +77,8 @@ pub fn handler(
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         liquidity_amount,
-        max_amount_a,
-        max_amount_b,
+        min_amount_a,
+        min_amount_b,
     )?;
 
     Ok(())

@@ -41,4 +41,13 @@ pub mod ggoldca {
     ) -> ProgramResult {
         instructions::deposit_pool::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
     }
+
+    pub fn withdraw_pool(
+        ctx: Context<DepositPool>,
+        liquidity_amount: u128,
+        min_amount_a: u64,
+        min_amount_b: u64,
+    ) -> ProgramResult {
+        instructions::deposit_pool::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
+    }
 }
