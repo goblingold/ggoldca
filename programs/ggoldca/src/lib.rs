@@ -43,11 +43,29 @@ pub mod ggoldca {
     }
 
     pub fn withdraw_pool(
-        ctx: Context<DepositPool>,
+        ctx: Context<WithdrawPool>,
         liquidity_amount: u128,
         min_amount_a: u64,
         min_amount_b: u64,
     ) -> ProgramResult {
-        instructions::deposit_pool::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
+        instructions::withdraw_pool::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
+    }
+
+    pub fn swap(
+        ctx: Context<Swap>,
+        amount: u64,
+        other_amount_threshold: u64,
+        sqrt_price_limit: u128,
+        amount_specified_is_input: bool,
+        a_to_b: bool,
+    ) -> ProgramResult {
+        instructions::swap::handler(
+            ctx,
+            amount,
+            other_amount_threshold,
+            sqrt_price_limit,
+            amount_specified_is_input,
+            a_to_b,
+        )
     }
 }
