@@ -24,7 +24,7 @@ pub mod ggoldca {
         ctx: Context<InitializeVault>,
         bump_vault: u8,
         bump_lp: u8,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         instructions::initialize_vault::handler(ctx, bump_vault, bump_lp)
     }
 
@@ -33,7 +33,7 @@ pub mod ggoldca {
         bump: u8,
         tick_lower_index: i32,
         tick_upper_index: i32,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         instructions::open_position::handler(ctx, bump, tick_lower_index, tick_upper_index)
     }
 
@@ -42,7 +42,7 @@ pub mod ggoldca {
         liquidity_amount: u128,
         max_amount_a: u64,
         max_amount_b: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         instructions::deposit_pool::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
     }
 
@@ -51,7 +51,7 @@ pub mod ggoldca {
         liquidity_amount: u128,
         min_amount_a: u64,
         min_amount_b: u64,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         instructions::withdraw_pool::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
     }
 
@@ -62,7 +62,7 @@ pub mod ggoldca {
         sqrt_price_limit: u128,
         amount_specified_is_input: bool,
         a_to_b: bool,
-    ) -> ProgramResult {
+    ) -> Result<()> {
         instructions::swap::handler(
             ctx,
             amount,

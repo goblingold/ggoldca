@@ -59,7 +59,7 @@ pub struct InitializeVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<InitializeVault>, bump_vault: u8, bump_lp: u8) -> ProgramResult {
+pub fn handler(ctx: Context<InitializeVault>, bump_vault: u8, bump_lp: u8) -> Result<()> {
     ctx.accounts
         .vault_account
         .set_inner(VaultAccount::init(InitVaultAccountParams {

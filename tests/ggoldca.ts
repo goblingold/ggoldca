@@ -1,3 +1,4 @@
+//#! anchor test --skip-build
 import * as wh from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
@@ -39,6 +40,9 @@ describe("ggoldca", () => {
     new wh.AccountFetcher(program.provider.connection)
   );
 
+  let vaultInputTokenAAccount;
+  let vaultInputTokenBAccount;
+
   const [vaultAccount, bumpVault] =
     anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -49,9 +53,6 @@ describe("ggoldca", () => {
       program.programId
     );
 
-  console.log(vaultAccount.toString());
-  console.log(program.programId.toString());
-
   const [vaultLpTokenMintPubkey, bumpLp] =
     anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("mint"), vaultAccount.toBuffer()],
@@ -59,13 +60,13 @@ describe("ggoldca", () => {
     );
 
   it("Initialize vault", async () => {
-    const vaultInputTokenAAccount = await getAssociatedTokenAddress(
+    vaultInputTokenAAccount = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
       vaultAccount,
       true
     );
 
-    const vaultInputTokenBAccount = await getAssociatedTokenAddress(
+    vaultInputTokenBAccount = await getAssociatedTokenAddress(
       TOKEN_B_MINT_PUBKEY,
       vaultAccount,
       true
@@ -94,6 +95,11 @@ describe("ggoldca", () => {
     console.log("initialize_vault", tx);
   });
 
+  let position;
+  let positionTokenAccount;
+  let tickLower;
+  let tickUpper;
+
   it("Open position", async () => {
     const pool = await whClient.getPool(POOL_ID);
 
@@ -105,17 +111,17 @@ describe("ggoldca", () => {
     // Derive the tick-indices based on a human-readable price
     const tokenADecimal = poolTokenAInfo.decimals;
     const tokenBDecimal = poolTokenBInfo.decimals;
-    const tickLower = wh.TickUtil.getInitializableTickIndex(
+    tickLower = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
-        new Decimal(98),
+        new Decimal(0.9),
         tokenADecimal,
         tokenBDecimal
       ),
       poolData.tickSpacing
     );
-    const tickUpper = wh.TickUtil.getInitializableTickIndex(
+    tickUpper = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
-        new Decimal(150),
+        new Decimal(1.1),
         tokenADecimal,
         tokenBDecimal
       ),
@@ -133,15 +139,18 @@ describe("ggoldca", () => {
       true
     );
 
+    position = positionPda.publicKey;
+    positionTokenAccount = positionTokenAccountAddress;
+
     const tx = await program.methods
       .openPosition(positionPda.bump, tickLower, tickUpper)
       .accounts({
         userSigner,
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        position: positionPda.publicKey,
+        position,
         positionMint: positionMintKeypair.publicKey,
-        positionTokenAccount: positionTokenAccountAddress,
+        positionTokenAccount,
         whirlpool: POOL_ID,
       })
       .transaction();
@@ -152,5 +161,94 @@ describe("ggoldca", () => {
       CONFIRM_OPTS
     );
     console.log("open_position", txSig);
+  });
+
+  it("Deposit pool", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+    const positionData = await whClient.fetcher.getPosition(position);
+
+    const liquidityAmount = new anchor.BN(1_000);
+    const maxAmountA = new anchor.BN(10_000);
+    const maxAmountB = new anchor.BN(10_000);
+
+    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    // Construct Init Tick Array Ix
+    const tickArrayLower = wh.TickUtil.getStartTickIndex(
+      positionData.tickLowerIndex,
+      poolData.tickSpacing
+    );
+    const tickArrayUpper = wh.TickUtil.getStartTickIndex(
+      positionData.tickUpperIndex,
+      poolData.tickSpacing
+    );
+
+    const tickArrayLowerPda = wh.PDAUtil.getTickArray(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID,
+      tickArrayLower
+    );
+
+    const tickArrayUpperPda = wh.PDAUtil.getTickArray(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID,
+      tickArrayUpper
+    );
+
+    const initTickLowerIx = wh.WhirlpoolIx.initTickArrayIx(
+      whClient.ctx.program,
+      {
+        startTick: tickArrayLower,
+        tickArrayPda: tickArrayLowerPda,
+        whirlpool: POOL_ID,
+        funder: userSigner,
+      }
+    );
+
+    const initTickUpperIx = wh.WhirlpoolIx.initTickArrayIx(
+      whClient.ctx.program,
+      {
+        startTick: tickArrayUpper,
+        tickArrayPda: tickArrayUpperPda,
+        whirlpool: POOL_ID,
+        funder: userSigner,
+      }
+    );
+
+    const tx = new anchor.web3.Transaction()
+      .add(initTickLowerIx)
+      .add(initTickUpperIx)
+      .add(
+        await program.methods
+          .depositPool(liquidityAmount, maxAmountA, maxAmountB)
+          .accounts({
+            userSigner,
+            vaultAccount,
+            vaultInputTokenAAccount,
+            vaultInputTokenBAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            whirlpool: POOL_ID,
+            position,
+            positionTokenAccount,
+            tokenOwnerAccountA,
+            tokenOwnerAccountB,
+            tokenVaultA: poolData.tokenVaultA,
+            tokenVaultB: poolData.tokenVaultB,
+            tickArrayLower: tickArrayLowerPda.publicKey,
+            tickArrayUpper: tickArrayUpperPda.publicKey,
+          })
+          .transaction()
+      );
+
+    const txSig = await program.provider.sendAndConfirm(tx);
+    console.log("deposit_pool", txSig);
   });
 });

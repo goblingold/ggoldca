@@ -31,6 +31,24 @@ address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 [[test.validator.clone]]
 address = "Fvtf8VCjnkqbETA6KtyHYqHm26ut6w184Jqm4MQjPvv7"
 
+# USDH whirlpool vault
+[[test.validator.clone]]
+address = "4WuB7EYM6N42583EnFkWPusbWUZB5X9ESErUU5gQ5dra"
+
+# USDC hwirlpool vault
+[[test.validator.clone]]
+address = "GHQjuFa7XY4GXPYHZ1cWtkqcCqxMQ6eNt4op7dhaVnSd"
+
 # whirlpool program
 [[test.validator.clone]]
 address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+
+# USDC_ata for DrrB1 with 10^12 lamports
+[[test.validator.account]]
+address = "CL6TVscze5qrzhb9vJjydDWxj8dB2kj5YUAK5j1s2cAW"
+filename = "./tests/accounts/CL6TVscze5qrzhb9vJjydDWxj8dB2kj5YUAK5j1s2cAW.json"
+
+# USDH_ata for DrrB1 with 10^12 lamports
+[[test.validator.account]]
+address = "51C35yS12BEvDmcLAV2DDt3oAcQxP5dQUpnihE2ZABMo"
+filename = "./tests/accounts/51C35yS12BEvDmcLAV2DDt3oAcQxP5dQUpnihE2ZABMo.json"

@@ -3,6 +3,7 @@ use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::Token;
 
 #[derive(Accounts)]
@@ -43,8 +44,8 @@ pub struct Swap<'info> {
 }
 
 impl<'info> Swap<'info> {
-    fn swap_ctx(&self) -> CpiContext<'_, '_, '_, 'info, whirlpool::cpi::accounts::Swap<'info>> {
-        CpiContext::new(
+    fn swap_ctx(&self) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::Swap<'info>> {
+        CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::Swap {
                 token_program: self.token_program.to_account_info(),
@@ -70,7 +71,7 @@ pub fn handler(
     sqrt_price_limit: u128,
     amount_specified_is_input: bool,
     a_to_b: bool,
-) -> ProgramResult {
+) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 

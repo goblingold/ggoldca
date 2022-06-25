@@ -3,6 +3,7 @@ use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::Token;
 
 #[derive(Accounts)]
@@ -45,8 +46,9 @@ pub struct WithdrawPool<'info> {
 impl<'info> WithdrawPool<'info> {
     fn modify_liquidity_ctx(
         &self,
-    ) -> CpiContext<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>> {
-        CpiContext::new(
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
+    {
+        CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::ModifyLiquidity {
                 whirlpool: self.whirlpool.to_account_info(),
@@ -70,7 +72,7 @@ pub fn handler(
     liquidity_amount: u128,
     min_amount_a: u64,
     min_amount_b: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 

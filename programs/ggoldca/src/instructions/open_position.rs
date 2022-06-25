@@ -1,11 +1,10 @@
-use crate::macros::generate_seeds;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::Token;
-use anchor_spl::token::TokenAccount;
 
 #[derive(Accounts)]
 pub struct OpenPosition<'info> {
@@ -41,8 +40,9 @@ pub struct OpenPosition<'info> {
 impl<'info> OpenPosition<'info> {
     fn open_position_ctx(
         &self,
-    ) -> CpiContext<'_, '_, '_, 'info, whirlpool::cpi::accounts::OpenPosition<'info>> {
-        CpiContext::new(
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::OpenPosition<'info>>
+    {
+        CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::OpenPosition {
                 funder: self.user_signer.to_account_info(),
@@ -65,7 +65,7 @@ pub fn handler(
     bump: u8,
     tick_lower_index: i32,
     tick_upper_index: i32,
-) -> ProgramResult {
+) -> Result<()> {
     whirlpool::cpi::open_position(
         ctx.accounts.open_position_ctx(),
         whirlpool::state::position::OpenPositionBumps {

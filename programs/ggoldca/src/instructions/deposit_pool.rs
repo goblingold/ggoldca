@@ -3,7 +3,8 @@ use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
-use anchor_spl::token::Token;
+use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
+use anchor_spl::token::{self, Approve, Revoke, Token, TokenAccount};
 
 #[derive(Accounts)]
 pub struct DepositPool<'info> {
@@ -13,29 +14,43 @@ pub struct DepositPool<'info> {
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
+    #[account(
+        associated_token::mint = vault_account.input_token_a_mint_pubkey,
+        associated_token::authority = vault_account,
+    )]
+    pub vault_input_token_a_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        associated_token::mint = vault_account.input_token_b_mint_pubkey,
+        associated_token::authority = vault_account,
+    )]
+    pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
 
     #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
 
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub whirlpool: AccountInfo<'info>,
-    /// CHECK: whirlpool cpi
-    pub position_authority: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub position: AccountInfo<'info>,
     /// CHECK: whirlpool cpi
     pub position_token_account: AccountInfo<'info>,
-    /// CHECK: whirlpool cpi
-    pub token_owner_account_a: AccountInfo<'info>,
-    /// CHECK: whirlpool cpi
-    pub token_owner_account_b: AccountInfo<'info>,
+    #[account(mut)]
+    pub token_owner_account_a: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub token_owner_account_b: Account<'info, TokenAccount>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_a: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub tick_array_lower: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub tick_array_upper: AccountInfo<'info>,
 
@@ -45,13 +60,14 @@ pub struct DepositPool<'info> {
 impl<'info> DepositPool<'info> {
     fn modify_liquidity_ctx(
         &self,
-    ) -> CpiContext<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>> {
-        CpiContext::new(
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
+    {
+        CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::ModifyLiquidity {
                 whirlpool: self.whirlpool.to_account_info(),
                 token_program: self.token_program.to_account_info(),
-                position_authority: self.position_authority.to_account_info(),
+                position_authority: self.vault_account.to_account_info(),
                 position: self.position.to_account_info(),
                 position_token_account: self.position_token_account.to_account_info(),
                 token_owner_account_a: self.token_owner_account_a.to_account_info(),
@@ -63,6 +79,33 @@ impl<'info> DepositPool<'info> {
             },
         )
     }
+
+    fn delegate_user_to_vault_ctx(
+        &self,
+        account: AccountInfo<'info>,
+    ) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Approve {
+                to: account,
+                delegate: self.vault_account.to_account_info(),
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
+
+    fn revoke_vault_ctx(
+        &self,
+        account: AccountInfo<'info>,
+    ) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Revoke {
+                source: account,
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
 }
 
 pub fn handler(
@@ -70,15 +113,37 @@ pub fn handler(
     liquidity_amount: u128,
     max_amount_a: u64,
     max_amount_b: u64,
-) -> ProgramResult {
+) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
+
+    token::approve(
+        ctx.accounts
+            .delegate_user_to_vault_ctx(ctx.accounts.token_owner_account_a.to_account_info()),
+        max_amount_a,
+    )?;
+
+    token::approve(
+        ctx.accounts
+            .delegate_user_to_vault_ctx(ctx.accounts.token_owner_account_b.to_account_info()),
+        max_amount_b,
+    )?;
 
     whirlpool::cpi::increase_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         liquidity_amount,
         max_amount_a,
         max_amount_b,
+    )?;
+
+    token::revoke(
+        ctx.accounts
+            .revoke_vault_ctx(ctx.accounts.token_owner_account_a.to_account_info()),
+    )?;
+
+    token::revoke(
+        ctx.accounts
+            .revoke_vault_ctx(ctx.accounts.token_owner_account_b.to_account_info()),
     )?;
 
     Ok(())
