@@ -347,9 +347,9 @@ describe("ggoldca", () => {
   it("Deposit", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    const liquidityAmount = new anchor.BN(1_000);
-    const maxAmountA = new anchor.BN(10_000);
-    const maxAmountB = new anchor.BN(10_000);
+    const liquidityAmount = new anchor.BN(1_000_000);
+    const maxAmountA = new anchor.BN(1_000_000);
+    const maxAmountB = new anchor.BN(1_000_000);
 
     const tokenOwnerAccountA = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
@@ -383,7 +383,42 @@ describe("ggoldca", () => {
     console.log("deposit", txSig);
   });
 
-  it("Withdraw", async () => {
+  it("Rebalance", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tx = await program.methods
+      .rebalance()
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        whirlpool: POOL_ID,
+        position,
+        positionTokenAccount,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArrayLower: tickArrayLowerPubkey,
+        tickArrayUpper: tickArrayUpperPubkey,
+      })
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("rebalance", txSig);
+  });
+
+  xit("Withdraw", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
     const liquidityAmount = new anchor.BN(1_000);

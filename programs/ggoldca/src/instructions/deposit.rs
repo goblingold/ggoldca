@@ -126,6 +126,9 @@ pub fn handler(
         max_amount_b,
     )?;
 
+    let amount_a = ctx.accounts.token_owner_account_a.amount;
+    let amount_b = ctx.accounts.token_owner_account_b.amount;
+
     let liquidity_before = ctx.accounts.position_liquidity()?;
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
@@ -140,7 +143,11 @@ pub fn handler(
 
     let liquidity_after = ctx.accounts.position_liquidity()?;
 
-    msg!("LIQ {:?}", liquidity_after);
+    ctx.accounts.token_owner_account_a.reload()?;
+    ctx.accounts.token_owner_account_b.reload()?;
+    msg!("A {}", amount_a - ctx.accounts.token_owner_account_a.amount);
+    msg!("B {}", amount_b - ctx.accounts.token_owner_account_b.amount);
+    msg!("L {}", liquidity_after);
 
     let _user_liquidity = liquidity_after
         .checked_sub(liquidity_before)

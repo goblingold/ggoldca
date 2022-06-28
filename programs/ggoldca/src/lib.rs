@@ -57,6 +57,10 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
     }
 
+    pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
+        instructions::rebalance::handler(ctx)
+    }
+
     pub fn swap(
         ctx: Context<Swap>,
         amount: u64,
