@@ -39,22 +39,22 @@ pub mod ggoldca {
         instructions::open_position::handler(ctx, bump, tick_lower_index, tick_upper_index)
     }
 
-    pub fn deposit_pool(
-        ctx: Context<DepositPool>,
+    pub fn deposit(
+        ctx: Context<Deposit>,
         liquidity_amount: u128,
         max_amount_a: u64,
         max_amount_b: u64,
     ) -> Result<()> {
-        instructions::deposit_pool::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
+        instructions::deposit::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
     }
 
-    pub fn withdraw_pool(
-        ctx: Context<WithdrawPool>,
+    pub fn whitdraw(
+        ctx: Context<Withdraw>,
         liquidity_amount: u128,
         min_amount_a: u64,
         min_amount_b: u64,
     ) -> Result<()> {
-        instructions::withdraw_pool::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
+        instructions::withdraw::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
     }
 
     pub fn swap(

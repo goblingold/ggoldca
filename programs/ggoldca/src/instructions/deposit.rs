@@ -8,23 +8,13 @@ use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Approve, Revoke, Token, TokenAccount};
 
 #[derive(Accounts)]
-pub struct DepositPool<'info> {
+pub struct Deposit<'info> {
     pub user_signer: Signer<'info>,
     #[account(
         seeds = [VAULT_ACCOUNT_SEED, vault_account.input_token_a_mint_pubkey.as_ref(), vault_account.input_token_b_mint_pubkey.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
-    #[account(
-        associated_token::mint = vault_account.input_token_a_mint_pubkey,
-        associated_token::authority = vault_account,
-    )]
-    pub vault_input_token_a_account: Box<Account<'info, TokenAccount>>,
-    #[account(
-        associated_token::mint = vault_account.input_token_b_mint_pubkey,
-        associated_token::authority = vault_account,
-    )]
-    pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
 
     #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
     /// CHECK: address is checked
@@ -58,7 +48,7 @@ pub struct DepositPool<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-impl<'info> DepositPool<'info> {
+impl<'info> Deposit<'info> {
     fn modify_liquidity_ctx(
         &self,
     ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
@@ -119,7 +109,7 @@ impl<'info> DepositPool<'info> {
 }
 
 pub fn handler(
-    ctx: Context<DepositPool>,
+    ctx: Context<Deposit>,
     liquidity_amount: u128,
     max_amount_a: u64,
     max_amount_b: u64,
@@ -149,6 +139,8 @@ pub fn handler(
     )?;
 
     let liquidity_after = ctx.accounts.position_liquidity()?;
+
+    msg!("LIQ {:?}", liquidity_after);
 
     let _user_liquidity = liquidity_after
         .checked_sub(liquidity_before)

@@ -7,7 +7,7 @@ use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::Token;
 
 #[derive(Accounts)]
-pub struct WithdrawPool<'info> {
+pub struct Withdraw<'info> {
     pub user_signer: Signer<'info>,
     #[account(
         seeds = [VAULT_ACCOUNT_SEED, vault_account.input_token_a_mint_pubkey.as_ref(), vault_account.input_token_b_mint_pubkey.as_ref()],
@@ -43,7 +43,7 @@ pub struct WithdrawPool<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-impl<'info> WithdrawPool<'info> {
+impl<'info> Withdraw<'info> {
     fn modify_liquidity_ctx(
         &self,
     ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
@@ -65,10 +65,19 @@ impl<'info> WithdrawPool<'info> {
             },
         )
     }
+
+    fn position_liquidity(&self) -> Result<u128> {
+        use anchor_lang_for_whirlpool::AccountDeserialize;
+        use std::borrow::Borrow;
+        let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
+        let position =
+            whirlpool::state::position::Position::try_deserialize(&mut acc_data_slice.borrow())?;
+        Ok(position.liquidity)
+    }
 }
 
 pub fn handler(
-    ctx: Context<WithdrawPool>,
+    ctx: Context<Withdraw>,
     liquidity_amount: u128,
     min_amount_a: u64,
     min_amount_b: u64,

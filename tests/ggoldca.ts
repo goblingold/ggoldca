@@ -102,21 +102,18 @@ describe("ggoldca", () => {
 
   let position;
   let positionTokenAccount;
-  let tickLower;
-  let tickUpper;
+  let tickArrayLowerPubkey;
+  let tickArrayUpperPubkey;
 
   it("Open position", async () => {
     const pool = await whClient.getPool(POOL_ID);
-
-    // Load everything that you need
     const poolData = pool.getData();
     const poolTokenAInfo = pool.getTokenAInfo();
     const poolTokenBInfo = pool.getTokenBInfo();
 
-    // Derive the tick-indices based on a human-readable price
     const tokenADecimal = poolTokenAInfo.decimals;
     const tokenBDecimal = poolTokenBInfo.decimals;
-    tickLower = wh.TickUtil.getInitializableTickIndex(
+    const tickLower = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
         new Decimal(0.9),
         tokenADecimal,
@@ -124,7 +121,7 @@ describe("ggoldca", () => {
       ),
       poolData.tickSpacing
     );
-    tickUpper = wh.TickUtil.getInitializableTickIndex(
+    const tickUpper = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
         new Decimal(1.1),
         tokenADecimal,
@@ -168,24 +165,9 @@ describe("ggoldca", () => {
     console.log("open_position", txSig);
   });
 
-  it("Deposit pool", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
+  it("Init tick arrays", async () => {
     const positionData = await whClient.fetcher.getPosition(position);
-    console.log(positionData);
-
-    const liquidityAmount = new anchor.BN(1_000);
-    const maxAmountA = new anchor.BN(10_000);
-    const maxAmountB = new anchor.BN(10_000);
-
-    const tokenOwnerAccountA = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
-    );
-
-    const tokenOwnerAccountB = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
 
     // Construct Init Tick Array Ix
     const tickArrayLower = wh.TickUtil.getStartTickIndex(
@@ -229,32 +211,53 @@ describe("ggoldca", () => {
       }
     );
 
+    tickArrayLowerPubkey = tickArrayLowerPda.publicKey;
+    tickArrayUpperPubkey = tickArrayUpperPda.publicKey;
+
     const tx = new anchor.web3.Transaction()
       .add(initTickLowerIx)
-      .add(initTickUpperIx)
-      .add(
-        await program.methods
-          .depositPool(liquidityAmount, maxAmountA, maxAmountB)
-          .accounts({
-            userSigner,
-            vaultAccount,
-            vaultInputTokenAAccount,
-            vaultInputTokenBAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-            whirlpool: POOL_ID,
-            position,
-            positionTokenAccount,
-            tokenOwnerAccountA,
-            tokenOwnerAccountB,
-            tokenVaultA: poolData.tokenVaultA,
-            tokenVaultB: poolData.tokenVaultB,
-            tickArrayLower: tickArrayLowerPda.publicKey,
-            tickArrayUpper: tickArrayUpperPda.publicKey,
-          })
-          .transaction()
-      );
+      .add(initTickUpperIx);
 
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS_FIN);
-    console.log("deposit_pool", txSig);
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("init tick arrays", txSig);
+  });
+
+  it("Deposit", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const liquidityAmount = new anchor.BN(1_000);
+    const maxAmountA = new anchor.BN(10_000);
+    const maxAmountB = new anchor.BN(10_000);
+
+    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tx = await program.methods
+      .deposit(liquidityAmount, maxAmountA, maxAmountB)
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        whirlpool: POOL_ID,
+        position,
+        positionTokenAccount,
+        tokenOwnerAccountA,
+        tokenOwnerAccountB,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArrayLower: tickArrayLowerPubkey,
+        tickArrayUpper: tickArrayUpperPubkey,
+      })
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("deposit", txSig);
   });
 });
