@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::macros::generate_seeds;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
@@ -106,6 +107,15 @@ impl<'info> DepositPool<'info> {
             },
         )
     }
+
+    fn position_liquidity(&self) -> Result<u128> {
+        use anchor_lang_for_whirlpool::AccountDeserialize;
+        use std::borrow::Borrow;
+        let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
+        let position =
+            whirlpool::state::position::Position::try_deserialize(&mut acc_data_slice.borrow())?;
+        Ok(position.liquidity)
+    }
 }
 
 pub fn handler(
@@ -114,9 +124,6 @@ pub fn handler(
     max_amount_a: u64,
     max_amount_b: u64,
 ) -> Result<()> {
-    let seeds = generate_seeds!(ctx.accounts.vault_account);
-    let signer = &[&seeds[..]];
-
     token::approve(
         ctx.accounts
             .delegate_user_to_vault_ctx(ctx.accounts.token_owner_account_a.to_account_info()),
@@ -129,12 +136,23 @@ pub fn handler(
         max_amount_b,
     )?;
 
+    let liquidity_before = ctx.accounts.position_liquidity()?;
+
+    let seeds = generate_seeds!(ctx.accounts.vault_account);
+    let signer = &[&seeds[..]];
+
     whirlpool::cpi::increase_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         liquidity_amount,
         max_amount_a,
         max_amount_b,
     )?;
+
+    let liquidity_after = ctx.accounts.position_liquidity()?;
+
+    let _user_liquidity = liquidity_after
+        .checked_sub(liquidity_before)
+        .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
 
     token::revoke(
         ctx.accounts

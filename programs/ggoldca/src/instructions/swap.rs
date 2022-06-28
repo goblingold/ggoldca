@@ -44,7 +44,9 @@ pub struct Swap<'info> {
 }
 
 impl<'info> Swap<'info> {
-    fn swap_ctx(&self) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::Swap<'info>> {
+    fn swap_ctx(
+        &self,
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::Swap<'info>> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::Swap {

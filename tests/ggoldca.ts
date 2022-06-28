@@ -1,4 +1,4 @@
-//#! anchor test --skip-build
+//#! anchor test
 import * as wh from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
@@ -24,6 +24,11 @@ const DAO_TREASURY_PUBKEY = new anchor.web3.PublicKey(
 
 const CONFIRM_OPTS: anchor.web3.ConfirmOptions = {
   skipPreflight: true,
+};
+
+const CONFIRM_OPTS_FIN: anchor.web3.ConfirmOptions = {
+  skipPreflight: true,
+  commitment: "finalized",
 };
 
 describe("ggoldca", () => {
@@ -166,6 +171,7 @@ describe("ggoldca", () => {
   it("Deposit pool", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
     const positionData = await whClient.fetcher.getPosition(position);
+    console.log(positionData);
 
     const liquidityAmount = new anchor.BN(1_000);
     const maxAmountA = new anchor.BN(10_000);
@@ -248,7 +254,7 @@ describe("ggoldca", () => {
           .transaction()
       );
 
-    const txSig = await program.provider.sendAndConfirm(tx);
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS_FIN);
     console.log("deposit_pool", txSig);
   });
 });
