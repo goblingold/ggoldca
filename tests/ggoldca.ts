@@ -105,7 +105,12 @@ describe("ggoldca", () => {
   let tickArrayLowerPubkey;
   let tickArrayUpperPubkey;
 
-  it("Open positions", async () => {
+  let position2;
+  let position2TokenAccount;
+  let tickArray2LowerPubkey;
+  let tickArray2UpperPubkey;
+
+  it("Open position", async () => {
     const pool = await whClient.getPool(POOL_ID);
     const poolData = pool.getData();
     const poolTokenAInfo = pool.getTokenAInfo();
@@ -165,6 +170,66 @@ describe("ggoldca", () => {
     console.log("open_position", txSig);
   });
 
+  it("Open position2", async () => {
+    const pool = await whClient.getPool(POOL_ID);
+    const poolData = pool.getData();
+    const poolTokenAInfo = pool.getTokenAInfo();
+    const poolTokenBInfo = pool.getTokenBInfo();
+
+    const tokenADecimal = poolTokenAInfo.decimals;
+    const tokenBDecimal = poolTokenBInfo.decimals;
+    const tickLower = wh.TickUtil.getInitializableTickIndex(
+      wh.PriceMath.priceToTickIndex(
+        new Decimal(0.95),
+        tokenADecimal,
+        tokenBDecimal
+      ),
+      poolData.tickSpacing
+    );
+    const tickUpper = wh.TickUtil.getInitializableTickIndex(
+      wh.PriceMath.priceToTickIndex(
+        new Decimal(1.05),
+        tokenADecimal,
+        tokenBDecimal
+      ),
+      poolData.tickSpacing
+    );
+
+    const positionMintKeypair = anchor.web3.Keypair.generate();
+    const positionPda = wh.PDAUtil.getPosition(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      positionMintKeypair.publicKey
+    );
+    const positionTokenAccountAddress = await getAssociatedTokenAddress(
+      positionMintKeypair.publicKey,
+      vaultAccount,
+      true
+    );
+
+    position2 = positionPda.publicKey;
+    position2TokenAccount = positionTokenAccountAddress;
+
+    const tx = await program.methods
+      .openPosition(positionPda.bump, tickLower, tickUpper)
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        position: position2,
+        positionMint: positionMintKeypair.publicKey,
+        positionTokenAccount: position2TokenAccount,
+        whirlpool: POOL_ID,
+      })
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(
+      tx,
+      [positionMintKeypair],
+      CONFIRM_OPTS
+    );
+    console.log("open_position_2", txSig);
+  });
+
   it("Init tick arrays", async () => {
     const positionData = await whClient.fetcher.getPosition(position);
     const poolData = await whClient.fetcher.getPool(POOL_ID);
@@ -219,7 +284,64 @@ describe("ggoldca", () => {
       .add(initTickUpperIx);
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("init tick arrays", txSig);
+    console.log("init_tick_arrays", txSig);
+  });
+
+  it("Init tick arrays 2", async () => {
+    const positionData = await whClient.fetcher.getPosition(position2);
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const startTickLower = wh.TickUtil.getStartTickIndex(
+      positionData.tickLowerIndex,
+      poolData.tickSpacing
+    );
+
+    const startTickUpper = wh.TickUtil.getStartTickIndex(
+      positionData.tickUpperIndex,
+      poolData.tickSpacing
+    );
+
+    const tickArrayLowerPda = wh.PDAUtil.getTickArray(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID,
+      startTickLower
+    );
+
+    const tickArrayUpperPda = wh.PDAUtil.getTickArray(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID,
+      startTickUpper
+    );
+
+    const initTickLowerIx = wh.WhirlpoolIx.initTickArrayIx(
+      whClient.ctx.program,
+      {
+        startTick: startTickLower,
+        tickArrayPda: tickArrayLowerPda,
+        whirlpool: POOL_ID,
+        funder: userSigner,
+      }
+    );
+
+    const initTickUpperIx = wh.WhirlpoolIx.initTickArrayIx(
+      whClient.ctx.program,
+      {
+        startTick: startTickUpper,
+        tickArrayPda: tickArrayUpperPda,
+        whirlpool: POOL_ID,
+        funder: userSigner,
+      }
+    );
+
+    tickArray2LowerPubkey = tickArrayLowerPda.publicKey;
+    tickArray2UpperPubkey = tickArrayUpperPda.publicKey;
+
+    const tx = new anchor.web3.Transaction()
+      .add(initTickLowerIx)
+      .add(initTickUpperIx);
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("init_tick_arrays_2", txSig);
   });
 
   it("Deposit", async () => {
