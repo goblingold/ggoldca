@@ -169,12 +169,12 @@ describe("ggoldca", () => {
     const positionData = await whClient.fetcher.getPosition(position);
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    const tickArrayLower = wh.TickUtil.getStartTickIndex(
+    const startTickLower = wh.TickUtil.getStartTickIndex(
       positionData.tickLowerIndex,
       poolData.tickSpacing
     );
 
-    const tickArrayUpper = wh.TickUtil.getStartTickIndex(
+    const startTickUpper = wh.TickUtil.getStartTickIndex(
       positionData.tickUpperIndex,
       poolData.tickSpacing
     );
@@ -182,19 +182,19 @@ describe("ggoldca", () => {
     const tickArrayLowerPda = wh.PDAUtil.getTickArray(
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       POOL_ID,
-      tickArrayLower
+      startTickLower
     );
 
     const tickArrayUpperPda = wh.PDAUtil.getTickArray(
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       POOL_ID,
-      tickArrayUpper
+      startTickUpper
     );
 
     const initTickLowerIx = wh.WhirlpoolIx.initTickArrayIx(
       whClient.ctx.program,
       {
-        startTick: tickArrayLower,
+        startTick: startTickLower,
         tickArrayPda: tickArrayLowerPda,
         whirlpool: POOL_ID,
         funder: userSigner,
@@ -204,7 +204,7 @@ describe("ggoldca", () => {
     const initTickUpperIx = wh.WhirlpoolIx.initTickArrayIx(
       whClient.ctx.program,
       {
-        startTick: tickArrayUpper,
+        startTick: startTickUpper,
         tickArrayPda: tickArrayUpperPda,
         whirlpool: POOL_ID,
         funder: userSigner,
