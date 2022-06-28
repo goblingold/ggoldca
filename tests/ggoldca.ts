@@ -105,7 +105,7 @@ describe("ggoldca", () => {
   let tickArrayLowerPubkey;
   let tickArrayUpperPubkey;
 
-  it("Open position", async () => {
+  it("Open positions", async () => {
     const pool = await whClient.getPool(POOL_ID);
     const poolData = pool.getData();
     const poolTokenAInfo = pool.getTokenAInfo();
@@ -169,11 +169,11 @@ describe("ggoldca", () => {
     const positionData = await whClient.fetcher.getPosition(position);
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    // Construct Init Tick Array Ix
     const tickArrayLower = wh.TickUtil.getStartTickIndex(
       positionData.tickLowerIndex,
       poolData.tickSpacing
     );
+
     const tickArrayUpper = wh.TickUtil.getStartTickIndex(
       positionData.tickUpperIndex,
       poolData.tickSpacing
@@ -259,5 +259,44 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("deposit", txSig);
+  });
+
+  it("Withdraw", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const liquidityAmount = new anchor.BN(1_000);
+    const minAmountA = new anchor.BN(0);
+    const minAmountB = new anchor.BN(0);
+
+    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tx = await program.methods
+      .withdraw(liquidityAmount, minAmountA, minAmountB)
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        whirlpool: POOL_ID,
+        position,
+        positionTokenAccount,
+        tokenOwnerAccountA,
+        tokenOwnerAccountB,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        tickArrayLower: tickArrayLowerPubkey,
+        tickArrayUpper: tickArrayUpperPubkey,
+      })
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("withdraw", txSig);
   });
 });

@@ -48,7 +48,7 @@ pub mod ggoldca {
         instructions::deposit::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
     }
 
-    pub fn whitdraw(
+    pub fn withdraw(
         ctx: Context<Withdraw>,
         liquidity_amount: u128,
         min_amount_a: u64,

@@ -19,24 +19,31 @@ pub struct Withdraw<'info> {
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
 
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub whirlpool: AccountInfo<'info>,
-    /// CHECK: whirlpool cpi
-    pub position_authority: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub position: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub position_token_account: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_owner_account_a: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_owner_account_b: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_a: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub tick_array_lower: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: whirlpool cpi
     pub tick_array_upper: AccountInfo<'info>,
 
@@ -53,7 +60,7 @@ impl<'info> Withdraw<'info> {
             whirlpool::cpi::accounts::ModifyLiquidity {
                 whirlpool: self.whirlpool.to_account_info(),
                 token_program: self.token_program.to_account_info(),
-                position_authority: self.position_authority.to_account_info(),
+                position_authority: self.vault_account.to_account_info(),
                 position: self.position.to_account_info(),
                 position_token_account: self.position_token_account.to_account_info(),
                 token_owner_account_a: self.token_owner_account_a.to_account_info(),
