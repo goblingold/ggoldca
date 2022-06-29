@@ -7,7 +7,7 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
 use std::borrow::Borrow;
-use whirlpool::math::{bit_math, tick_math};
+use whirlpool::math::{bit_math, tick_math, U256};
 
 #[derive(Accounts)]
 pub struct Rebalance<'info> {
@@ -108,6 +108,9 @@ impl<'info> Rebalance<'info> {
             (position.tick_lower_index, position.tick_upper_index)
         };
 
+        msg!("curr {} lo {} up {}", curr_tick, lower_tick, upper_tick);
+        msg!("a {} b {}", token_amount_a, token_amount_b);
+
         let lower_sqrt_price = tick_math::sqrt_price_from_tick_index(lower_tick);
         let upper_sqrt_price = tick_math::sqrt_price_from_tick_index(upper_tick);
 
@@ -151,25 +154,32 @@ fn est_liquidity_for_token_a(
     sqrt_price_2: u128,
     token_amount: u64,
 ) -> Result<u128> {
-    let lower_sqrt_price_x64 = std::cmp::min(sqrt_price_1, sqrt_price_2);
-    let upper_sqrt_price_x64 = std::cmp::max(sqrt_price_1, sqrt_price_2);
+    msg!(
+        "sqrt_price_1 {} sqrt_price_2 {} token_amount {}",
+        sqrt_price_1,
+        sqrt_price_2,
+        token_amount
+    );
+    let lower_sqrt_price_x64 = U256::from(std::cmp::min(sqrt_price_1, sqrt_price_2));
+    let upper_sqrt_price_x64 = U256::from(std::cmp::max(sqrt_price_1, sqrt_price_2));
 
-    let token_amount_x64 = u128::from(token_amount) << bit_math::Q64_RESOLUTION;
-
-    // TODO check if these mul should be done in a higher representation
-    let num = token_amount_x64
+    let num = U256::from(token_amount)
         .checked_mul(upper_sqrt_price_x64)
         .ok_or_else(|| error!(ErrorCode::MathOverflow))?
         .checked_mul(lower_sqrt_price_x64)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
+        .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+        >> bit_math::Q64_RESOLUTION;
 
     let den = upper_sqrt_price_x64
         .checked_sub(lower_sqrt_price_x64)
         .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
 
-    Ok(num
-        .checked_div(den)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?)
+    msg!("{} {} {}", num, den, num / den);
+
+    num.checked_div(den)
+        .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+        .try_into_u128()
+        .map_err(|_| error!(ErrorCode::MathOverflow))
 }
 
 // impl from @orca-so/whirlpools-sdk: PoolUtil/estLiquidityForTokenB
@@ -187,9 +197,9 @@ fn est_liquidity_for_token_b(
 
     let token_amount_x64 = u128::from(token_amount) << bit_math::Q64_RESOLUTION;
 
-    Ok(token_amount_x64
+    token_amount_x64
         .checked_div(delta)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?)
+        .ok_or_else(|| error!(ErrorCode::MathOverflow))
 }
 
 pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
@@ -218,24 +228,22 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     let amount_a = ctx.accounts.vault_input_token_a_account.amount;
     let amount_b = ctx.accounts.vault_input_token_b_account.amount;
 
-    let new_liq = ctx
+    let new_liquidity = ctx
         .accounts
         .estimate_liquidity_from_token_amounts(amount_a, amount_b)?;
 
-    msg!("N.L {}", new_liq);
+    whirlpool::cpi::increase_liquidity(
+        ctx.accounts.modify_liquidity_ctx().with_signer(signer),
+        new_liquidity,
+        ctx.accounts.vault_input_token_a_account.amount,
+        ctx.accounts.vault_input_token_b_account.amount,
+    )?;
 
-    //whirlpool::cpi::increase_liquidity(
-    //    ctx.accounts.modify_liquidity_ctx().with_signer(signer),
-    //    liquidity,
-    //    ctx.accounts.vault_input_token_a_account.amount,
-    //    ctx.accounts.vault_input_token_b_account.amount,
-    //)?;
-
-    //ctx.accounts.vault_input_token_a_account.reload()?;
-    //ctx.accounts.vault_input_token_b_account.reload()?;
-    //msg!("2.L {}", ctx.accounts.position_liquidity()?);
-    //msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    //msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
+    ctx.accounts.vault_input_token_a_account.reload()?;
+    ctx.accounts.vault_input_token_b_account.reload()?;
+    msg!("2.L {}", ctx.accounts.position_liquidity()?);
+    msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
+    msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
 
     Ok(())
 }

@@ -31,6 +31,16 @@ const CONFIRM_OPTS_FIN: anchor.web3.ConfirmOptions = {
   commitment: "finalized",
 };
 
+const COMPUTE_BUDGET_IX = new anchor.web3.TransactionInstruction({
+  programId: new anchor.web3.PublicKey(
+    "ComputeBudget111111111111111111111111111111"
+  ),
+  keys: [],
+  data: Buffer.from(
+    Uint8Array.of(0, ...new anchor.BN(1_000_000).toArray("le", 8))
+  ),
+});
+
 describe("ggoldca", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
@@ -396,23 +406,25 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const tx = await program.methods
-      .rebalance()
-      .accounts({
-        userSigner,
-        vaultAccount,
-        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        whirlpool: POOL_ID,
-        position,
-        positionTokenAccount,
-        vaultInputTokenAAccount,
-        vaultInputTokenBAccount,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
-        tickArrayLower: tickArrayLowerPubkey,
-        tickArrayUpper: tickArrayUpperPubkey,
-      })
-      .transaction();
+    const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
+      await program.methods
+        .rebalance()
+        .accounts({
+          userSigner,
+          vaultAccount,
+          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+          whirlpool: POOL_ID,
+          position,
+          positionTokenAccount,
+          vaultInputTokenAAccount,
+          vaultInputTokenBAccount,
+          tokenVaultA: poolData.tokenVaultA,
+          tokenVaultB: poolData.tokenVaultB,
+          tickArrayLower: tickArrayLowerPubkey,
+          tickArrayUpper: tickArrayUpperPubkey,
+        })
+        .transaction()
+    );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("rebalance", txSig);
