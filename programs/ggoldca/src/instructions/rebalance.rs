@@ -108,9 +108,6 @@ impl<'info> Rebalance<'info> {
             (position.tick_lower_index, position.tick_upper_index)
         };
 
-        msg!("curr {} lo {} up {}", curr_tick, lower_tick, upper_tick);
-        msg!("a {} b {}", token_amount_a, token_amount_b);
-
         let lower_sqrt_price = tick_math::sqrt_price_from_tick_index(lower_tick);
         let upper_sqrt_price = tick_math::sqrt_price_from_tick_index(upper_tick);
 
@@ -154,12 +151,6 @@ fn est_liquidity_for_token_a(
     sqrt_price_2: u128,
     token_amount: u64,
 ) -> Result<u128> {
-    msg!(
-        "sqrt_price_1 {} sqrt_price_2 {} token_amount {}",
-        sqrt_price_1,
-        sqrt_price_2,
-        token_amount
-    );
     let lower_sqrt_price_x64 = U256::from(std::cmp::min(sqrt_price_1, sqrt_price_2));
     let upper_sqrt_price_x64 = U256::from(std::cmp::max(sqrt_price_1, sqrt_price_2));
 
@@ -173,8 +164,6 @@ fn est_liquidity_for_token_a(
     let den = upper_sqrt_price_x64
         .checked_sub(lower_sqrt_price_x64)
         .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
-
-    msg!("{} {} {}", num, den, num / den);
 
     num.checked_div(den)
         .ok_or_else(|| error!(ErrorCode::MathOverflow))?
@@ -235,8 +224,8 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     whirlpool::cpi::increase_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         new_liquidity,
-        ctx.accounts.vault_input_token_a_account.amount,
-        ctx.accounts.vault_input_token_b_account.amount,
+        amount_a,
+        amount_b,
     )?;
 
     ctx.accounts.vault_input_token_a_account.reload()?;
