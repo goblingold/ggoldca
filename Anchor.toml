@@ -27,6 +27,14 @@ address = "USDH1SM1ojwWUga67PGrgFWUHibbjqMvuMaDkRJTgkX"
 [[test.validator.clone]]
 address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
 
+# Hubble protocol token mint
+[[test.validator.clone]]
+address = "HBB111SCo9jkCejsZfz8Ec8nH7T6THF8KEKSnvwT6XK6"
+
+# Orca
+[[test.validator.clone]]
+address = "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE"
+
 # USDH-USDC whirlpool
 [[test.validator.clone]]
 address = "Fvtf8VCjnkqbETA6KtyHYqHm26ut6w184Jqm4MQjPvv7"

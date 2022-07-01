@@ -5,4 +5,6 @@ use anchor_lang::prelude::*;
 pub enum ErrorCode {
     #[msg("Math operation overflow")]
     MathOverflow,
+    #[msg("Invalid number remaining accounts")]
+    InvalidRemainingAccounts,
 }

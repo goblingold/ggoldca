@@ -58,6 +58,12 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
     }
 
+    pub fn collect_fees_and_rewards<'info>(
+        ctx: Context<'_, '_, '_, 'info, CollectFeesAndRewards<'info>>,
+    ) -> Result<()> {
+        instructions::collect_fees_and_rewards::handler(ctx)
+    }
+
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
     }

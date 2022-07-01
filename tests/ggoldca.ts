@@ -2,7 +2,10 @@
 import * as wh from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import {
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import { Decimal } from "decimal.js";
 import { Ggoldca } from "../target/types/ggoldca";
 
@@ -74,7 +77,19 @@ describe("ggoldca", () => {
       program.programId
     );
 
+  let rewardAccounts;
   it("Initialize vault", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+    const rewardMints = poolData.rewardInfos
+      .map((info) => info.mint)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    rewardAccounts = await Promise.all(
+      rewardMints.map(async (key) =>
+        getAssociatedTokenAddress(key, vaultAccount, true)
+      )
+    );
+
     vaultInputTokenAAccount = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
       vaultAccount,
@@ -106,8 +121,21 @@ describe("ggoldca", () => {
         daoTreasuryLpTokenAccount,
         daoTreasuryOwner: DAO_TREASURY_PUBKEY,
       })
-      .rpc(CONFIRM_OPTS);
-    console.log("initialize_vault", tx);
+      .transaction();
+
+    rewardAccounts.forEach((pubkey, indx) => {
+      tx.add(
+        createAssociatedTokenAccountInstruction(
+          userSigner,
+          pubkey,
+          vaultAccount,
+          rewardMints[indx]
+        )
+      );
+    });
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("initialize_vault", txSig);
   });
 
   let position;
@@ -127,6 +155,7 @@ describe("ggoldca", () => {
 
     const tokenADecimal = poolTokenAInfo.decimals;
     const tokenBDecimal = poolTokenBInfo.decimals;
+
     const tickLower = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
         new Decimal(0.9),
@@ -395,6 +424,52 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("deposit", txSig);
+  });
+
+  it("Collect fees & rewards", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const liquidityAmount = new anchor.BN(1_000_000);
+    const maxAmountA = new anchor.BN(1_000_000);
+    const maxAmountB = new anchor.BN(1_000_000);
+
+    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const remainingAccounts = rewardAccounts.map(
+      (pubkey) =>
+        (anchor.web3.AccountMeta = {
+          isSigner: false,
+          isWritable: true,
+          pubkey,
+        })
+    );
+
+    const tx = await program.methods
+      .collectFeesAndRewards()
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        whirlpool: POOL_ID,
+        tokenOwnerAccountA,
+        tokenOwnerAccountB,
+        tokenVaultA: poolData.tokenVaultA,
+        tokenVaultB: poolData.tokenVaultB,
+        position: positionAccounts,
+      })
+      .remainingAccounts(remainingAccounts)
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("collect_fees_and_rewards", txSig);
   });
 
   it("Rebalance", async () => {
