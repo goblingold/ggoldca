@@ -52,8 +52,9 @@ pub struct Rebalance<'info> {
 }
 
 impl<'info> Rebalance<'info> {
-    fn modify_current_liquidity_ctx(
+    fn modify_liquidity_ctx(
         &self,
+        position: &PositionParams<'info>,
     ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
     {
         CpiContextForWhirlpool::new(
@@ -62,39 +63,14 @@ impl<'info> Rebalance<'info> {
                 whirlpool: self.whirlpool.to_account_info(),
                 token_program: self.token_program.to_account_info(),
                 position_authority: self.vault_account.to_account_info(),
-                position: self.current_position.position.to_account_info(),
-                position_token_account: self
-                    .current_position
-                    .position_token_account
-                    .to_account_info(),
+                position: position.position.to_account_info(),
+                position_token_account: position.position_token_account.to_account_info(),
                 token_owner_account_a: self.vault_input_token_a_account.to_account_info(),
                 token_owner_account_b: self.vault_input_token_b_account.to_account_info(),
                 token_vault_a: self.token_vault_a.to_account_info(),
                 token_vault_b: self.token_vault_b.to_account_info(),
-                tick_array_lower: self.current_position.tick_array_lower.to_account_info(),
-                tick_array_upper: self.current_position.tick_array_upper.to_account_info(),
-            },
-        )
-    }
-
-    fn modify_new_liquidity_ctx(
-        &self,
-    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
-    {
-        CpiContextForWhirlpool::new(
-            self.whirlpool_program_id.to_account_info(),
-            whirlpool::cpi::accounts::ModifyLiquidity {
-                whirlpool: self.whirlpool.to_account_info(),
-                token_program: self.token_program.to_account_info(),
-                position_authority: self.vault_account.to_account_info(),
-                position: self.new_position.position.to_account_info(),
-                position_token_account: self.new_position.position_token_account.to_account_info(),
-                token_owner_account_a: self.vault_input_token_a_account.to_account_info(),
-                token_owner_account_b: self.vault_input_token_b_account.to_account_info(),
-                token_vault_a: self.token_vault_a.to_account_info(),
-                token_vault_b: self.token_vault_b.to_account_info(),
-                tick_array_lower: self.new_position.tick_array_lower.to_account_info(),
-                tick_array_upper: self.new_position.tick_array_upper.to_account_info(),
+                tick_array_lower: position.tick_array_lower.to_account_info(),
+                tick_array_upper: position.tick_array_upper.to_account_info(),
             },
         )
     }
@@ -238,7 +214,7 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
 
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts
-            .modify_current_liquidity_ctx()
+            .modify_liquidity_ctx(&ctx.accounts.current_position)
             .with_signer(signer),
         liquidity,
         0,
@@ -258,7 +234,9 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
         .new_liquidity_from_token_amounts(amount_a, amount_b)?;
 
     whirlpool::cpi::increase_liquidity(
-        ctx.accounts.modify_new_liquidity_ctx().with_signer(signer),
+        ctx.accounts
+            .modify_liquidity_ctx(&ctx.accounts.new_position)
+            .with_signer(signer),
         new_liquidity,
         amount_a,
         amount_b,
