@@ -78,10 +78,15 @@ describe("ggoldca", () => {
     );
 
   let rewardAccounts;
+  let rewardWhirlpoolVaults;
   it("Initialize vault", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
     const rewardMints = poolData.rewardInfos
       .map((info) => info.mint)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    rewardWhirlpoolVaults = poolData.rewardInfos
+      .map((info) => info.vault)
       .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
 
     rewardAccounts = await Promise.all(
@@ -443,7 +448,7 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const remainingAccounts = rewardAccounts.map(
+    const remainingAccounts = [...rewardAccounts, ...rewardWhirlpoolVaults].map(
       (pubkey) =>
         (anchor.web3.AccountMeta = {
           isSigner: false,

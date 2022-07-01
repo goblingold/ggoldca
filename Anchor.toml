@@ -43,9 +43,17 @@ address = "Fvtf8VCjnkqbETA6KtyHYqHm26ut6w184Jqm4MQjPvv7"
 [[test.validator.clone]]
 address = "4WuB7EYM6N42583EnFkWPusbWUZB5X9ESErUU5gQ5dra"
 
-# USDC hwirlpool vault
+# USDC whirlpool vault
 [[test.validator.clone]]
 address = "GHQjuFa7XY4GXPYHZ1cWtkqcCqxMQ6eNt4op7dhaVnSd"
+
+# Hubble protocol token whirlpool vault
+[[test.validator.clone]]
+address = "FtyAqoebZvqv71Y8eq13rXrj5CXbpT5nSaRgndSaWMC7"
+
+# Orca whirlpool vault
+[[test.validator.clone]]
+address = "Gun69u86yfheQpdB2DfJhKQqZ8xs9DudjFQypQucFYEi"
 
 # whirlpool program
 [[test.validator.clone]]
