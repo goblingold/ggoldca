@@ -406,6 +406,20 @@ describe("ggoldca", () => {
       userSigner
     );
 
+    const currentPosition = {
+      position,
+      positionTokenAccount,
+      tickArrayLower: tickArrayLowerPubkey,
+      tickArrayUpper: tickArrayUpperPubkey,
+    };
+
+    const newPosition = {
+      position: position2,
+      positionTokenAccount: position2TokenAccount,
+      tickArrayLower: tickArray2LowerPubkey,
+      tickArrayUpper: tickArray2UpperPubkey,
+    };
+
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods
         .rebalance()
@@ -414,14 +428,12 @@ describe("ggoldca", () => {
           vaultAccount,
           whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
           whirlpool: POOL_ID,
-          position,
-          positionTokenAccount,
           vaultInputTokenAAccount,
           vaultInputTokenBAccount,
           tokenVaultA: poolData.tokenVaultA,
           tokenVaultB: poolData.tokenVaultB,
-          tickArrayLower: tickArrayLowerPubkey,
-          tickArrayUpper: tickArrayUpperPubkey,
+          currentPosition,
+          newPosition,
         })
         .transaction()
     );
