@@ -1,5 +1,6 @@
 use crate::error::ErrorCode;
 use crate::macros::generate_seeds;
+use crate::position::*;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -45,8 +46,8 @@ pub struct Rebalance<'info> {
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
 
-    pub current_position: PositionParams<'info>,
-    pub new_position: PositionParams<'info>,
+    pub current_position: PositionAccounts<'info>,
+    pub new_position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -54,7 +55,7 @@ pub struct Rebalance<'info> {
 impl<'info> Rebalance<'info> {
     fn modify_liquidity_ctx(
         &self,
-        position: &PositionParams<'info>,
+        position: &PositionAccounts<'info>,
     ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
     {
         CpiContextForWhirlpool::new(
@@ -130,32 +131,6 @@ impl<'info> Rebalance<'info> {
     }
 }
 
-#[derive(Accounts)]
-pub struct PositionParams<'info> {
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub position: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub position_token_account: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub tick_array_lower: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub tick_array_upper: AccountInfo<'info>,
-}
-
-impl<'info> PositionParams<'info> {
-    fn position_liquidity(&self) -> Result<u128> {
-        use anchor_lang_for_whirlpool::AccountDeserialize;
-        let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
-        let position =
-            whirlpool::state::position::Position::try_deserialize(&mut acc_data_slice.borrow())?;
-        Ok(position.liquidity)
-    }
-}
-
 // impl from @orca-so/whirlpools-sdk: PoolUtil/estLiquidityForTokenA
 fn est_liquidity_for_token_a(
     sqrt_price_1: u128,
@@ -206,7 +181,7 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    let liquidity = ctx.accounts.current_position.position_liquidity()?;
+    let liquidity = ctx.accounts.current_position.liquidity()?;
 
     msg!("0.L {}", liquidity);
     msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
@@ -244,7 +219,7 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
 
     ctx.accounts.vault_input_token_a_account.reload()?;
     ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("2.L {}", ctx.accounts.new_position.position_liquidity()?);
+    msg!("2.L {}", ctx.accounts.new_position.liquidity()?);
     msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
 

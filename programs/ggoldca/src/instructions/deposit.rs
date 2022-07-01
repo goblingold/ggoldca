@@ -1,5 +1,6 @@
 use crate::error::ErrorCode;
 use crate::macros::generate_seeds;
+use crate::position::*;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -23,54 +24,25 @@ pub struct Deposit<'info> {
     #[account(mut)]
     /// CHECK: whirlpool cpi
     pub whirlpool: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub position: AccountInfo<'info>,
-    /// CHECK: whirlpool cpi
-    pub position_token_account: AccountInfo<'info>,
+
     #[account(mut)]
     pub token_owner_account_a: Account<'info, TokenAccount>,
     #[account(mut)]
     pub token_owner_account_b: Account<'info, TokenAccount>,
+
     #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_a: AccountInfo<'info>,
     #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub tick_array_lower: AccountInfo<'info>,
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub tick_array_upper: AccountInfo<'info>,
+
+    pub position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,
 }
 
 impl<'info> Deposit<'info> {
-    fn modify_liquidity_ctx(
-        &self,
-    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
-    {
-        CpiContextForWhirlpool::new(
-            self.whirlpool_program_id.to_account_info(),
-            whirlpool::cpi::accounts::ModifyLiquidity {
-                whirlpool: self.whirlpool.to_account_info(),
-                token_program: self.token_program.to_account_info(),
-                position_authority: self.vault_account.to_account_info(),
-                position: self.position.to_account_info(),
-                position_token_account: self.position_token_account.to_account_info(),
-                token_owner_account_a: self.token_owner_account_a.to_account_info(),
-                token_owner_account_b: self.token_owner_account_b.to_account_info(),
-                token_vault_a: self.token_vault_a.to_account_info(),
-                token_vault_b: self.token_vault_b.to_account_info(),
-                tick_array_lower: self.tick_array_lower.to_account_info(),
-                tick_array_upper: self.tick_array_upper.to_account_info(),
-            },
-        )
-    }
-
     fn delegate_user_to_vault_ctx(
         &self,
         account: AccountInfo<'info>,
@@ -98,13 +70,26 @@ impl<'info> Deposit<'info> {
         )
     }
 
-    fn position_liquidity(&self) -> Result<u128> {
-        use anchor_lang_for_whirlpool::AccountDeserialize;
-        use std::borrow::Borrow;
-        let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
-        let position =
-            whirlpool::state::position::Position::try_deserialize(&mut acc_data_slice.borrow())?;
-        Ok(position.liquidity)
+    fn modify_liquidity_ctx(
+        &self,
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
+    {
+        CpiContextForWhirlpool::new(
+            self.whirlpool_program_id.to_account_info(),
+            whirlpool::cpi::accounts::ModifyLiquidity {
+                whirlpool: self.whirlpool.to_account_info(),
+                token_program: self.token_program.to_account_info(),
+                position_authority: self.vault_account.to_account_info(),
+                position: self.position.position.to_account_info(),
+                position_token_account: self.position.position_token_account.to_account_info(),
+                token_owner_account_a: self.token_owner_account_a.to_account_info(),
+                token_owner_account_b: self.token_owner_account_b.to_account_info(),
+                token_vault_a: self.token_vault_a.to_account_info(),
+                token_vault_b: self.token_vault_b.to_account_info(),
+                tick_array_lower: self.position.tick_array_lower.to_account_info(),
+                tick_array_upper: self.position.tick_array_upper.to_account_info(),
+            },
+        )
     }
 }
 
@@ -129,7 +114,7 @@ pub fn handler(
     let amount_a = ctx.accounts.token_owner_account_a.amount;
     let amount_b = ctx.accounts.token_owner_account_b.amount;
 
-    let liquidity_before = ctx.accounts.position_liquidity()?;
+    let liquidity_before = ctx.accounts.position.liquidity()?;
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
@@ -141,7 +126,7 @@ pub fn handler(
         max_amount_b,
     )?;
 
-    let liquidity_after = ctx.accounts.position_liquidity()?;
+    let liquidity_after = ctx.accounts.position.liquidity()?;
 
     ctx.accounts.token_owner_account_a.reload()?;
     ctx.accounts.token_owner_account_b.reload()?;

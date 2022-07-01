@@ -112,13 +112,12 @@ describe("ggoldca", () => {
 
   let position;
   let positionTokenAccount;
-  let tickArrayLowerPubkey;
-  let tickArrayUpperPubkey;
 
   let position2;
   let position2TokenAccount;
-  let tickArray2LowerPubkey;
-  let tickArray2UpperPubkey;
+
+  let positionAccounts;
+  let positionAccounts2;
 
   it("Open position", async () => {
     const pool = await whClient.getPool(POOL_ID);
@@ -286,8 +285,12 @@ describe("ggoldca", () => {
       }
     );
 
-    tickArrayLowerPubkey = tickArrayLowerPda.publicKey;
-    tickArrayUpperPubkey = tickArrayUpperPda.publicKey;
+    positionAccounts = {
+      position,
+      positionTokenAccount,
+      tickArrayLower: tickArrayLowerPda.publicKey,
+      tickArrayUpper: tickArrayUpperPda.publicKey,
+    };
 
     const tx = new anchor.web3.Transaction()
       .add(initTickLowerIx)
@@ -343,8 +346,12 @@ describe("ggoldca", () => {
       }
     );
 
-    tickArray2LowerPubkey = tickArrayLowerPda.publicKey;
-    tickArray2UpperPubkey = tickArrayUpperPda.publicKey;
+    positionAccounts2 = {
+      position: position2,
+      positionTokenAccount: position2TokenAccount,
+      tickArrayLower: tickArrayLowerPda.publicKey,
+      tickArrayUpper: tickArrayUpperPda.publicKey,
+    };
 
     const tx = new anchor.web3.Transaction()
       .add(initTickLowerIx)
@@ -378,14 +385,11 @@ describe("ggoldca", () => {
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
         whirlpool: POOL_ID,
-        position,
-        positionTokenAccount,
         tokenOwnerAccountA,
         tokenOwnerAccountB,
         tokenVaultA: poolData.tokenVaultA,
         tokenVaultB: poolData.tokenVaultB,
-        tickArrayLower: tickArrayLowerPubkey,
-        tickArrayUpper: tickArrayUpperPubkey,
+        position: positionAccounts,
       })
       .transaction();
 
@@ -406,20 +410,6 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const currentPosition = {
-      position,
-      positionTokenAccount,
-      tickArrayLower: tickArrayLowerPubkey,
-      tickArrayUpper: tickArrayUpperPubkey,
-    };
-
-    const newPosition = {
-      position: position2,
-      positionTokenAccount: position2TokenAccount,
-      tickArrayLower: tickArray2LowerPubkey,
-      tickArrayUpper: tickArray2UpperPubkey,
-    };
-
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods
         .rebalance()
@@ -432,8 +422,8 @@ describe("ggoldca", () => {
           vaultInputTokenBAccount,
           tokenVaultA: poolData.tokenVaultA,
           tokenVaultB: poolData.tokenVaultB,
-          currentPosition,
-          newPosition,
+          currentPosition: positionAccounts,
+          newPosition: positionAccounts2,
         })
         .transaction()
     );
@@ -442,7 +432,7 @@ describe("ggoldca", () => {
     console.log("rebalance", txSig);
   });
 
-  xit("Withdraw", async () => {
+  it("Withdraw", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
     const liquidityAmount = new anchor.BN(1_000);
@@ -466,14 +456,11 @@ describe("ggoldca", () => {
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
         whirlpool: POOL_ID,
-        position,
-        positionTokenAccount,
         tokenOwnerAccountA,
         tokenOwnerAccountB,
         tokenVaultA: poolData.tokenVaultA,
         tokenVaultB: poolData.tokenVaultB,
-        tickArrayLower: tickArrayLowerPubkey,
-        tickArrayUpper: tickArrayUpperPubkey,
+        position: positionAccounts2,
       })
       .transaction();
 

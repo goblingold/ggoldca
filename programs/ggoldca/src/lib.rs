@@ -5,6 +5,7 @@ mod error;
 mod instructions;
 mod macros;
 mod math;
+mod position;
 mod state;
 
 declare_id!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
