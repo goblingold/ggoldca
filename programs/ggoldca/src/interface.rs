@@ -1,5 +1,6 @@
 use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
+use anchor_lang_for_whirlpool::AccountDeserialize;
 use std::borrow::Borrow;
 use whirlpool::math::{bit_math, tick_math, U256};
 
@@ -24,7 +25,6 @@ pub struct PositionAccounts<'info> {
 
 impl<'info> PositionAccounts<'info> {
     pub fn liquidity(&self) -> Result<u128> {
-        use anchor_lang_for_whirlpool::AccountDeserialize;
         let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
         let position =
             whirlpool::state::position::Position::try_deserialize(&mut acc_data_slice.borrow())?;
@@ -37,8 +37,6 @@ impl<'info> PositionAccounts<'info> {
         token_amount_a: u64,
         token_amount_b: u64,
     ) -> Result<u128> {
-        use anchor_lang_for_whirlpool::AccountDeserialize;
-
         let (curr_sqrt_price, curr_tick) = {
             let acc_data_slice: &[u8] = &self.whirlpool.try_borrow_data()?;
             let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
@@ -83,6 +81,97 @@ impl<'info> PositionAccounts<'info> {
                 est_liquidity_amount_b,
             ))
         }
+    }
+
+    // impl from @orca-so/whirlpools-sdk: PoolUtil/getTokenAmountsFromLiquidity
+    pub fn token_amounts_from_liquidity(self, liquidity: u128) -> Result<(u64, u64)> {
+        let current_price = {
+            let acc_data_slice: &[u8] = &self.whirlpool.try_borrow_data()?;
+            let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
+                &mut acc_data_slice.borrow(),
+            )?;
+
+            U256::from(pool.sqrt_price)
+        };
+
+        let (lower_price, upper_price) = {
+            let acc_data_slice: &[u8] = &self.position.try_borrow_data()?;
+            let position = whirlpool::state::position::Position::try_deserialize(
+                &mut acc_data_slice.borrow(),
+            )?;
+
+            let lower_tick = position.tick_lower_index;
+            let upper_tick = position.tick_upper_index;
+            (
+                U256::from(tick_math::sqrt_price_from_tick_index(lower_tick)),
+                U256::from(tick_math::sqrt_price_from_tick_index(upper_tick)),
+            )
+        };
+
+        let liquidity = U256::from(liquidity);
+
+        let token_a;
+        let token_b;
+        if current_price < lower_price {
+            // x = L * (pb - pa) / (pa * pb)
+            token_a = (liquidity << bit_math::Q64_RESOLUTION)
+                .checked_mul(
+                    upper_price
+                        .checked_sub(lower_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+                .checked_div(
+                    upper_price
+                        .checked_mul(lower_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
+            token_b = U256::from(0);
+        } else if current_price < upper_price {
+            token_a = (liquidity << bit_math::Q64_RESOLUTION)
+                .checked_mul(
+                    upper_price
+                        .checked_sub(current_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+                .checked_div(
+                    upper_price
+                        .checked_mul(current_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
+            token_b = liquidity
+                .checked_mul(
+                    current_price
+                        .checked_sub(lower_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+                >> bit_math::Q64_RESOLUTION;
+        } else {
+            token_a = U256::from(0);
+            token_b = liquidity
+                .checked_mul(
+                    upper_price
+                        .checked_sub(lower_price)
+                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
+                )
+                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+                >> bit_math::Q64_RESOLUTION;
+        };
+
+        //TODO ensure round-up
+        let token_a = token_a
+            .try_into_u64()
+            .map_err(|_| error!(ErrorCode::MathOverflow))?;
+
+        let token_b = token_b
+            .try_into_u64()
+            .map_err(|_| error!(ErrorCode::MathOverflow))?;
+
+        Ok((token_a, token_b))
     }
 }
 
