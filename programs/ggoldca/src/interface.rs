@@ -5,6 +5,9 @@ use std::borrow::Borrow;
 pub struct PositionAccounts<'info> {
     #[account(mut)]
     /// CHECK: whirlpool cpi
+    pub whirlpool: AccountInfo<'info>,
+    #[account(mut)]
+    /// CHECK: whirlpool cpi
     pub position: AccountInfo<'info>,
     #[account(mut)]
     /// CHECK: whirlpool cpi

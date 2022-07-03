@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
+use crate::interface::*;
 use crate::macros::generate_seeds;
-use crate::position::*;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -26,10 +26,6 @@ pub struct CollectFeesAndRewards<'info> {
     pub whirlpool_program_id: AccountInfo<'info>,
 
     #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub whirlpool: AccountInfo<'info>,
-
-    #[account(mut)]
     pub token_owner_account_a: Account<'info, TokenAccount>,
     #[account(mut)]
     pub token_owner_account_b: Account<'info, TokenAccount>,
@@ -53,7 +49,7 @@ impl<'info> CollectFeesAndRewards<'info> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             UpdateFeesAndRewards {
-                whirlpool: self.whirlpool.to_account_info(),
+                whirlpool: self.position.whirlpool.to_account_info(),
                 position: self.position.position.to_account_info(),
                 tick_array_lower: self.position.tick_array_lower.to_account_info(),
                 tick_array_upper: self.position.tick_array_upper.to_account_info(),
@@ -65,7 +61,7 @@ impl<'info> CollectFeesAndRewards<'info> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             CollectFees {
-                whirlpool: self.whirlpool.to_account_info(),
+                whirlpool: self.position.whirlpool.to_account_info(),
                 position_authority: self.vault_account.to_account_info(),
                 position: self.position.position.to_account_info(),
                 position_token_account: self.position.position_token_account.to_account_info(),
@@ -86,7 +82,7 @@ impl<'info> CollectFeesAndRewards<'info> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             CollectReward {
-                whirlpool: self.whirlpool.to_account_info(),
+                whirlpool: self.position.whirlpool.to_account_info(),
                 position_authority: self.vault_account.to_account_info(),
                 position: self.position.position.to_account_info(),
                 position_token_account: self.position.position_token_account.to_account_info(),
@@ -106,7 +102,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, CollectFeesAndRewards<'inf
     whirlpool::cpi::collect_fees(ctx.accounts.collect_fees_ctx().with_signer(signer))?;
 
     let rewards_mints: Vec<Pubkey> = {
-        let acc_data_slice: &[u8] = &ctx.accounts.whirlpool.try_borrow_data()?;
+        let acc_data_slice: &[u8] = &ctx.accounts.position.whirlpool.try_borrow_data()?;
         let pool =
             whirlpool::state::whirlpool::Whirlpool::try_deserialize(&mut acc_data_slice.borrow())?;
 

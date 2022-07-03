@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
+use crate::interface::*;
 use crate::macros::generate_seeds;
-use crate::position::*;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -20,10 +20,6 @@ pub struct Deposit<'info> {
     #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
-
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub whirlpool: AccountInfo<'info>,
 
     #[account(mut)]
     pub token_owner_account_a: Account<'info, TokenAccount>,
@@ -77,7 +73,7 @@ impl<'info> Deposit<'info> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::ModifyLiquidity {
-                whirlpool: self.whirlpool.to_account_info(),
+                whirlpool: self.position.whirlpool.to_account_info(),
                 token_program: self.token_program.to_account_info(),
                 position_authority: self.vault_account.to_account_info(),
                 position: self.position.position.to_account_info(),

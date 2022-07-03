@@ -320,6 +320,7 @@ describe("ggoldca", () => {
     );
 
     positionAccounts = {
+      whirlpool: POOL_ID,
       position,
       positionTokenAccount,
       tickArrayLower: tickArrayLowerPda.publicKey,
@@ -381,6 +382,7 @@ describe("ggoldca", () => {
     );
 
     positionAccounts2 = {
+      whirlpool: POOL_ID,
       position: position2,
       positionTokenAccount: position2TokenAccount,
       tickArrayLower: tickArrayLowerPda.publicKey,
@@ -418,7 +420,6 @@ describe("ggoldca", () => {
         userSigner,
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        whirlpool: POOL_ID,
         tokenOwnerAccountA,
         tokenOwnerAccountB,
         tokenVaultA: poolData.tokenVaultA,
@@ -463,7 +464,6 @@ describe("ggoldca", () => {
         userSigner,
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        whirlpool: POOL_ID,
         tokenOwnerAccountA,
         tokenOwnerAccountB,
         tokenVaultA: poolData.tokenVaultA,
@@ -497,7 +497,6 @@ describe("ggoldca", () => {
           userSigner,
           vaultAccount,
           whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-          whirlpool: POOL_ID,
           vaultInputTokenAAccount,
           vaultInputTokenBAccount,
           tokenVaultA: poolData.tokenVaultA,
@@ -535,7 +534,6 @@ describe("ggoldca", () => {
         userSigner,
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        whirlpool: POOL_ID,
         tokenOwnerAccountA,
         tokenOwnerAccountB,
         tokenVaultA: poolData.tokenVaultA,

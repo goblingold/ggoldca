@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
+use crate::interface::*;
 use crate::macros::generate_seeds;
-use crate::position::*;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -37,15 +37,12 @@ pub struct Rebalance<'info> {
 
     #[account(mut)]
     /// CHECK: whirlpool cpi
-    pub whirlpool: AccountInfo<'info>,
-
-    #[account(mut)]
-    /// CHECK: whirlpool cpi
     pub token_vault_a: AccountInfo<'info>,
     #[account(mut)]
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
 
+    #[account(constraint = current_position.whirlpool.key == new_position.whirlpool.key)]
     pub current_position: PositionAccounts<'info>,
     pub new_position: PositionAccounts<'info>,
 
@@ -61,7 +58,7 @@ impl<'info> Rebalance<'info> {
         CpiContextForWhirlpool::new(
             self.whirlpool_program_id.to_account_info(),
             whirlpool::cpi::accounts::ModifyLiquidity {
-                whirlpool: self.whirlpool.to_account_info(),
+                whirlpool: position.whirlpool.to_account_info(),
                 token_program: self.token_program.to_account_info(),
                 position_authority: self.vault_account.to_account_info(),
                 position: position.position.to_account_info(),
@@ -85,7 +82,7 @@ impl<'info> Rebalance<'info> {
         use anchor_lang_for_whirlpool::AccountDeserialize;
 
         let (curr_sqrt_price, curr_tick) = {
-            let acc_data_slice: &[u8] = &self.whirlpool.try_borrow_data()?;
+            let acc_data_slice: &[u8] = &self.new_position.whirlpool.try_borrow_data()?;
             let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
                 &mut acc_data_slice.borrow(),
             )?;

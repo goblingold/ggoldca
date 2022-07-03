@@ -3,9 +3,9 @@ use instructions::*;
 
 mod error;
 mod instructions;
+mod interface;
 mod macros;
 mod math;
-mod position;
 mod state;
 
 declare_id!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
