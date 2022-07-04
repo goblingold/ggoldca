@@ -62,18 +62,36 @@ pub trait SafeMulDiv: Sized {
 }
 
 impl SafeMulDiv for u64 {
-    type Output = u64;
+    type Output = Self;
 
     fn safe_mul_div_is_round(&self, mul: Self, div: Self, is_round: bool) -> Result<Self> {
         let mut num = u128::from(*self).safe_mul(u128::from(mul))?;
-        let div_128 = u128::from(div);
+        let div_aux = u128::from(div);
 
         if is_round {
-            num = num.safe_add(div_128)?.safe_sub(1)?;
+            num = num.safe_add(div_aux)?.safe_sub(1)?;
         }
 
         Ok(num
-            .safe_div(div_128)?
+            .safe_div(div_aux)?
+            .try_into()
+            .map_err(|_| ErrorCode::MathOverflow)?)
+    }
+}
+
+impl SafeMulDiv for u128 {
+    type Output = Self;
+
+    fn safe_mul_div_is_round(&self, mul: Self, div: Self, is_round: bool) -> Result<Self> {
+        let mut num = U256::from(*self).safe_mul(U256::from(mul))?;
+        let div_aux = U256::from(div);
+
+        if is_round {
+            num = num.safe_add(div_aux)?.safe_sub(U256::from(1))?;
+        }
+
+        Ok(num
+            .safe_div(div_aux)?
             .try_into()
             .map_err(|_| ErrorCode::MathOverflow)?)
     }
