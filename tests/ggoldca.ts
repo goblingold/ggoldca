@@ -400,33 +400,53 @@ describe("ggoldca", () => {
   it("Deposit", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    const liquidityAmount = new anchor.BN(1_000_000);
+    const lpAmount = new anchor.BN(1_000_000);
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
 
-    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+    const userTokenAAccount = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
       userSigner
     );
 
-    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+    const userTokenBAccount = await getAssociatedTokenAddress(
       TOKEN_B_MINT_PUBKEY,
       userSigner
     );
 
-    const tx = await program.methods
-      .deposit(liquidityAmount, maxAmountA, maxAmountB)
-      .accounts({
-        userSigner,
-        vaultAccount,
-        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        tokenOwnerAccountA,
-        tokenOwnerAccountB,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
-        position: positionAccounts,
-      })
-      .transaction();
+    const userLpTokenAccount = await getAssociatedTokenAddress(
+      vaultLpTokenMintPubkey,
+      userSigner
+    );
+
+    const tx = new anchor.web3.Transaction()
+      .add(
+        createAssociatedTokenAccountInstruction(
+          userSigner,
+          userLpTokenAccount,
+          userSigner,
+          vaultLpTokenMintPubkey
+        )
+      )
+      .add(
+        await program.methods
+          .deposit(lpAmount, maxAmountA, maxAmountB)
+          .accounts({
+            userSigner,
+            vaultAccount,
+            vaultLpTokenMintPubkey,
+            vaultInputTokenAAccount,
+            vaultInputTokenBAccount,
+            userLpTokenAccount,
+            userTokenAAccount,
+            userTokenBAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            whTokenVaultA: poolData.tokenVaultA,
+            whTokenVaultB: poolData.tokenVaultB,
+            position: positionAccounts,
+          })
+          .transaction()
+      );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("deposit", txSig);

@@ -42,11 +42,11 @@ pub mod ggoldca {
 
     pub fn deposit(
         ctx: Context<Deposit>,
-        liquidity_amount: u128,
+        lp_amount: u64,
         max_amount_a: u64,
         max_amount_b: u64,
     ) -> Result<()> {
-        instructions::deposit::handler(ctx, liquidity_amount, max_amount_a, max_amount_b)
+        instructions::deposit::handler(ctx, lp_amount, max_amount_a, max_amount_b)
     }
 
     pub fn withdraw(

@@ -176,8 +176,6 @@ impl<'info> PositionAccounts<'info> {
             };
         };
 
-        //TODO ensure round-up
-        msg!("REAL {:?} {:?}", token_a, token_b);
         let token_a = token_a
             .try_into_u64()
             .map_err(|_| error!(ErrorCode::MathOverflow))?;
