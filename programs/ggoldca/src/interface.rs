@@ -178,11 +178,11 @@ impl<'info> PositionAccounts<'info> {
 
         let token_a = token_a
             .try_into_u64()
-            .map_err(|_| error!(ErrorCode::MathOverflow))?;
+            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
 
         let token_b = token_b
             .try_into_u64()
-            .map_err(|_| error!(ErrorCode::MathOverflow))?;
+            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
 
         Ok((token_a, token_b))
     }
@@ -206,7 +206,7 @@ fn est_liquidity_for_token_a(
 
     num.safe_div(den)?
         .try_into_u128()
-        .map_err(|_| error!(ErrorCode::MathOverflow))
+        .map_err(|_| error!(ErrorCode::MathOverflowConversion))
 }
 
 // impl from @orca-so/whirlpools-sdk: PoolUtil/estLiquidityForTokenB

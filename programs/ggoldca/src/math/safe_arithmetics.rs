@@ -16,23 +16,19 @@ macro_rules! impl_safe_arithmetics {
             type Output = $type;
 
             fn safe_add(&self, rhs: Self) -> Result<Self> {
-                self.checked_add(rhs)
-                    .ok_or_else(|| error!(ErrorCode::MathOverflow))
+                Ok(self.checked_add(rhs).ok_or(ErrorCode::MathOverflowAdd)?)
             }
 
             fn safe_sub(&self, rhs: Self) -> Result<Self> {
-                self.checked_sub(rhs)
-                    .ok_or_else(|| error!(ErrorCode::MathOverflow))
+                Ok(self.checked_sub(rhs).ok_or(ErrorCode::MathOverflowSub)?)
             }
 
             fn safe_mul(&self, rhs: Self) -> Result<Self> {
-                self.checked_mul(rhs)
-                    .ok_or_else(|| error!(ErrorCode::MathOverflow))
+                Ok(self.checked_mul(rhs).ok_or(ErrorCode::MathOverflowMul)?)
             }
 
             fn safe_div(&self, rhs: Self) -> Result<Self> {
-                self.checked_div(rhs)
-                    .ok_or_else(|| error!(ErrorCode::MathOverflow))
+                Ok(self.checked_div(rhs).ok_or(ErrorCode::MathZeroDivision)?)
             }
         }
     };
@@ -75,7 +71,7 @@ impl SafeMulDiv for u64 {
         Ok(num
             .safe_div(div_aux)?
             .try_into()
-            .map_err(|_| ErrorCode::MathOverflow)?)
+            .map_err(|_| ErrorCode::MathOverflowConversion)?)
     }
 }
 
@@ -93,7 +89,7 @@ impl SafeMulDiv for u128 {
         Ok(num
             .safe_div(div_aux)?
             .try_into()
-            .map_err(|_| ErrorCode::MathOverflow)?)
+            .map_err(|_| ErrorCode::MathOverflowConversion)?)
     }
 }
 
