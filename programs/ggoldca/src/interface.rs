@@ -1,4 +1,5 @@
 use crate::error::ErrorCode;
+use crate::math::safe_arithmetics::SafeArithmetics;
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::AccountDeserialize;
 use std::borrow::Borrow;
@@ -113,53 +114,20 @@ impl<'info> PositionAccounts<'info> {
         let token_a;
         let token_b;
         if current_price < lower_price {
-            // x = L * (pb - pa) / (pa * pb)
             token_a = (liquidity << bit_math::Q64_RESOLUTION)
-                .checked_mul(
-                    upper_price
-                        .checked_sub(lower_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
-                .checked_div(
-                    upper_price
-                        .checked_mul(lower_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
+                .safe_mul(upper_price.safe_sub(lower_price)?)?
+                .safe_div(upper_price.safe_mul(lower_price)?)?;
             token_b = U256::from(0);
         } else if current_price < upper_price {
             token_a = (liquidity << bit_math::Q64_RESOLUTION)
-                .checked_mul(
-                    upper_price
-                        .checked_sub(current_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
-                .checked_div(
-                    upper_price
-                        .checked_mul(current_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
-            token_b = liquidity
-                .checked_mul(
-                    current_price
-                        .checked_sub(lower_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+                .safe_mul(upper_price.safe_sub(current_price)?)?
+                .safe_div(upper_price.safe_mul(current_price)?)?;
+            token_b = liquidity.safe_mul(current_price.safe_sub(lower_price)?)?
                 >> bit_math::Q64_RESOLUTION;
         } else {
             token_a = U256::from(0);
-            token_b = liquidity
-                .checked_mul(
-                    upper_price
-                        .checked_sub(lower_price)
-                        .ok_or_else(|| error!(ErrorCode::MathOverflow))?,
-                )
-                .ok_or_else(|| error!(ErrorCode::MathOverflow))?
-                >> bit_math::Q64_RESOLUTION;
+            token_b =
+                liquidity.safe_mul(upper_price.safe_sub(lower_price)?)? >> bit_math::Q64_RESOLUTION;
         };
 
         //TODO ensure round-up
@@ -185,18 +153,13 @@ fn est_liquidity_for_token_a(
     let upper_sqrt_price_x64 = U256::from(std::cmp::max(sqrt_price_1, sqrt_price_2));
 
     let num = U256::from(token_amount)
-        .checked_mul(upper_sqrt_price_x64)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?
-        .checked_mul(lower_sqrt_price_x64)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+        .safe_mul(upper_sqrt_price_x64)?
+        .safe_mul(lower_sqrt_price_x64)?
         >> bit_math::Q64_RESOLUTION;
 
-    let den = upper_sqrt_price_x64
-        .checked_sub(lower_sqrt_price_x64)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
+    let den = upper_sqrt_price_x64.safe_sub(lower_sqrt_price_x64)?;
 
-    num.checked_div(den)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?
+    num.safe_div(den)?
         .try_into_u128()
         .map_err(|_| error!(ErrorCode::MathOverflow))
 }
@@ -210,13 +173,8 @@ fn est_liquidity_for_token_b(
     let lower_sqrt_price_x64 = std::cmp::min(sqrt_price_1, sqrt_price_2);
     let upper_sqrt_price_x64 = std::cmp::max(sqrt_price_1, sqrt_price_2);
 
-    let delta = upper_sqrt_price_x64
-        .checked_sub(lower_sqrt_price_x64)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))?;
-
+    let delta = upper_sqrt_price_x64.safe_sub(lower_sqrt_price_x64)?;
     let token_amount_x64 = u128::from(token_amount) << bit_math::Q64_RESOLUTION;
 
-    token_amount_x64
-        .checked_div(delta)
-        .ok_or_else(|| error!(ErrorCode::MathOverflow))
+    token_amount_x64.safe_div(delta)
 }
