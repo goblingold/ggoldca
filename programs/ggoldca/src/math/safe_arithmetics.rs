@@ -38,5 +38,22 @@ macro_rules! impl_safe_arithmetics {
     };
 }
 
+impl_safe_arithmetics!(u64);
 impl_safe_arithmetics!(u128);
 impl_safe_arithmetics!(U256);
+
+pub trait SafeMulDiv {
+    type Output;
+    fn safe_mul_div(&self, num: Self, div: Self) -> Result<<Self as SafeMulDiv>::Output>;
+}
+
+impl SafeMulDiv for u64 {
+    type Output = u64;
+    fn safe_mul_div(&self, num: Self, div: Self) -> Result<Self> {
+        Ok(u128::from(*self)
+            .safe_mul(u128::from(num))?
+            .safe_div(u128::from(div))?
+            .try_into()
+            .map_err(|_| ErrorCode::MathOverflow)?)
+    }
+}
