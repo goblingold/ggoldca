@@ -13,6 +13,10 @@ pub enum ErrorCode {
     MathZeroDivision,
     #[msg("Math overflow during type conversion")]
     MathOverflowConversion,
+
+    #[msg("Exceeded token max")]
+    ExceededTokenMax,
+
     #[msg("Invalid number remaining accounts")]
     InvalidRemainingAccounts,
 }

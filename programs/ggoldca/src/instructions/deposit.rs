@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
@@ -168,6 +169,7 @@ pub fn handler(
                 amount_a,
             )?;
 
+            require!(amount_a < max_amount_a, ErrorCode::ExceededTokenMax);
             max_amount_a = max_amount_a.safe_sub(amount_a)?;
         }
 
@@ -181,6 +183,7 @@ pub fn handler(
                 amount_b,
             )?;
 
+            require!(amount_b < max_amount_b, ErrorCode::ExceededTokenMax);
             max_amount_b = max_amount_b.safe_sub(amount_b)?;
         }
 

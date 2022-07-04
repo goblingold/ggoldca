@@ -4,6 +4,7 @@ import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
 import {
   createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { Decimal } from "decimal.js";
@@ -450,6 +451,60 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("deposit", txSig);
+  });
+
+  it("Deposit with tokens in vault", async () => {
+    const poolData = await whClient.fetcher.getPool(POOL_ID);
+
+    const lpAmount = new anchor.BN(2_000_000);
+    const maxAmountA = new anchor.BN(1_000_000);
+    const maxAmountB = new anchor.BN(1_000_000);
+
+    const userTokenAAccount = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const userTokenBAccount = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const userLpTokenAccount = await getAssociatedTokenAddress(
+      vaultLpTokenMintPubkey,
+      userSigner
+    );
+
+    const transferIx = createTransferInstruction(
+      userTokenAAccount,
+      vaultInputTokenAAccount,
+      userSigner,
+      1_000,
+      []
+    );
+
+    const tx = new anchor.web3.Transaction().add(transferIx).add(
+      await program.methods
+        .deposit(lpAmount, maxAmountA, maxAmountB)
+        .accounts({
+          userSigner,
+          vaultAccount,
+          vaultLpTokenMintPubkey,
+          vaultInputTokenAAccount,
+          vaultInputTokenBAccount,
+          userLpTokenAccount,
+          userTokenAAccount,
+          userTokenBAccount,
+          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+          whTokenVaultA: poolData.tokenVaultA,
+          whTokenVaultB: poolData.tokenVaultB,
+          position: positionAccounts,
+        })
+        .transaction()
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("deposit_with_tokens_in_vault", txSig);
   });
 
   it("Collect fees & rewards", async () => {
