@@ -510,10 +510,6 @@ describe("ggoldca", () => {
   it("Collect fees & rewards", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    const liquidityAmount = new anchor.BN(1_000_000);
-    const maxAmountA = new anchor.BN(1_000_000);
-    const maxAmountB = new anchor.BN(1_000_000);
-
     const tokenOwnerAccountA = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
       userSigner
@@ -589,35 +585,73 @@ describe("ggoldca", () => {
   it("Withdraw", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
-    const liquidityAmount = new anchor.BN(1_000);
+    const lpAmount = new anchor.BN(3_000_000);
     const minAmountA = new anchor.BN(0);
     const minAmountB = new anchor.BN(0);
 
-    const tokenOwnerAccountA = await getAssociatedTokenAddress(
+    const userTokenAAccount = await getAssociatedTokenAddress(
       TOKEN_A_MINT_PUBKEY,
       userSigner
     );
 
-    const tokenOwnerAccountB = await getAssociatedTokenAddress(
+    const userTokenBAccount = await getAssociatedTokenAddress(
       TOKEN_B_MINT_PUBKEY,
       userSigner
     );
 
+    const userLpTokenAccount = await getAssociatedTokenAddress(
+      vaultLpTokenMintPubkey,
+      userSigner
+    );
+
     const tx = await program.methods
-      .withdraw(liquidityAmount, minAmountA, minAmountB)
+      .withdraw(lpAmount, minAmountA, minAmountB)
       .accounts({
         userSigner,
         vaultAccount,
+        vaultLpTokenMintPubkey,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
+        userLpTokenAccount,
+        userTokenAAccount,
+        userTokenBAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        tokenOwnerAccountA,
-        tokenOwnerAccountB,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
+        whTokenVaultA: poolData.tokenVaultA,
+        whTokenVaultB: poolData.tokenVaultB,
         position: positionAccounts2,
       })
       .transaction();
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("withdraw", txSig);
+  });
+
+  it("dummy final tx so validator logs are written", async () => {
+    const userTokenAAccount = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      userSigner
+    );
+
+    const userTokenBAccount = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      userSigner
+    );
+
+    const userLpTokenAccount = await getAssociatedTokenAddress(
+      vaultLpTokenMintPubkey,
+      userSigner
+    );
+
+    let tx = new anchor.web3.Transaction().add(
+      createTransferInstruction(
+        userTokenAAccount,
+        vaultInputTokenAAccount,
+        userSigner,
+        0,
+        []
+      )
+    );
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("dummy_transfer", txSig);
   });
 });

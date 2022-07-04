@@ -51,11 +51,11 @@ pub mod ggoldca {
 
     pub fn withdraw(
         ctx: Context<Withdraw>,
-        liquidity_amount: u128,
+        lp_amount: u64,
         min_amount_a: u64,
         min_amount_b: u64,
     ) -> Result<()> {
-        instructions::withdraw::handler(ctx, liquidity_amount, min_amount_a, min_amount_b)
+        instructions::withdraw::handler(ctx, lp_amount, min_amount_a, min_amount_b)
     }
 
     pub fn collect_fees_and_rewards<'info>(
