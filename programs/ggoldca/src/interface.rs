@@ -84,8 +84,20 @@ impl<'info> PositionAccounts<'info> {
         }
     }
 
+    pub fn token_amounts_from_liquidity(&self, liquidity: u128) -> Result<(u64, u64)> {
+        self.token_amounts_from_liquidity_is_round(liquidity, false)
+    }
+
+    pub fn token_amounts_from_liquidity_round_up(&self, liquidity: u128) -> Result<(u64, u64)> {
+        self.token_amounts_from_liquidity_is_round(liquidity, true)
+    }
+
     // impl from @orca-so/whirlpools-sdk: PoolUtil/getTokenAmountsFromLiquidity
-    pub fn token_amounts_from_liquidity(self, liquidity: u128) -> Result<(u64, u64)> {
+    fn token_amounts_from_liquidity_is_round(
+        &self,
+        liquidity: u128,
+        round_up: bool,
+    ) -> Result<(u64, u64)> {
         let current_price = {
             let acc_data_slice: &[u8] = &self.whirlpool.try_borrow_data()?;
             let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
@@ -114,23 +126,58 @@ impl<'info> PositionAccounts<'info> {
         let token_a;
         let token_b;
         if current_price < lower_price {
-            token_a = (liquidity << bit_math::Q64_RESOLUTION)
-                .safe_mul(upper_price.safe_sub(lower_price)?)?
-                .safe_div(upper_price.safe_mul(lower_price)?)?;
+            token_a = {
+                let mut numerator = (liquidity << bit_math::Q64_RESOLUTION)
+                    .safe_mul(upper_price.safe_sub(lower_price)?)?;
+
+                let denominator = upper_price.safe_mul(lower_price)?;
+
+                if round_up {
+                    numerator = numerator.safe_add(denominator)?.safe_sub(1.into())?;
+                }
+
+                numerator.safe_div(denominator)?
+            };
+
             token_b = U256::from(0);
         } else if current_price < upper_price {
-            token_a = (liquidity << bit_math::Q64_RESOLUTION)
-                .safe_mul(upper_price.safe_sub(current_price)?)?
-                .safe_div(upper_price.safe_mul(current_price)?)?;
-            token_b = liquidity.safe_mul(current_price.safe_sub(lower_price)?)?
-                >> bit_math::Q64_RESOLUTION;
+            token_a = {
+                let mut numerator = (liquidity << bit_math::Q64_RESOLUTION)
+                    .safe_mul(upper_price.safe_sub(current_price)?)?;
+
+                let denominator = upper_price.safe_mul(current_price)?;
+
+                if round_up {
+                    numerator = numerator.safe_add(denominator)?.safe_sub(1.into())?;
+                }
+                numerator.safe_div(denominator)?
+            };
+            token_b = {
+                let x64 = liquidity.safe_mul(current_price.safe_sub(lower_price)?)?;
+                let result = x64 >> bit_math::Q64_RESOLUTION;
+
+                if round_up && (x64 & U256::from(u64::MAX) > 0.into()) {
+                    result.safe_add(1.into())?
+                } else {
+                    result
+                }
+            };
         } else {
             token_a = U256::from(0);
-            token_b =
-                liquidity.safe_mul(upper_price.safe_sub(lower_price)?)? >> bit_math::Q64_RESOLUTION;
+            token_b = {
+                let x64 = liquidity.safe_mul(upper_price.safe_sub(lower_price)?)?;
+                let result = x64 >> bit_math::Q64_RESOLUTION;
+
+                if round_up && (x64 & U256::from(u64::MAX) > 0.into()) {
+                    result.safe_add(1.into())?
+                } else {
+                    result
+                }
+            };
         };
 
         //TODO ensure round-up
+        msg!("REAL {:?} {:?}", token_a, token_b);
         let token_a = token_a
             .try_into_u64()
             .map_err(|_| error!(ErrorCode::MathOverflow))?;

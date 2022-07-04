@@ -5,7 +5,7 @@ use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
-use anchor_spl::token::Token;
+use anchor_spl::token::{Token, TokenAccount};
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
@@ -21,11 +21,9 @@ pub struct Withdraw<'info> {
     pub whirlpool_program_id: AccountInfo<'info>,
 
     #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub token_owner_account_a: AccountInfo<'info>,
+    pub token_owner_account_a: Account<'info, TokenAccount>,
     #[account(mut)]
-    /// CHECK: whirlpool cpi
-    pub token_owner_account_b: AccountInfo<'info>,
+    pub token_owner_account_b: Account<'info, TokenAccount>,
 
     #[account(mut)]
     /// CHECK: whirlpool cpi
@@ -72,12 +70,28 @@ pub fn handler(
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
+    let amount_a = ctx.accounts.token_owner_account_a.amount;
+    let amount_b = ctx.accounts.token_owner_account_b.amount;
+
+    msg!(
+        "CALC {:?}",
+        ctx.accounts
+            .position
+            .token_amounts_from_liquidity(liquidity_amount)?
+    );
+
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         liquidity_amount,
         min_amount_a,
         min_amount_b,
     )?;
+
+    ctx.accounts.token_owner_account_a.reload()?;
+    ctx.accounts.token_owner_account_b.reload()?;
+
+    msg!("A {}", ctx.accounts.token_owner_account_a.amount - amount_a);
+    msg!("B {}", ctx.accounts.token_owner_account_b.amount - amount_b);
 
     Ok(())
 }

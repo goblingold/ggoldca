@@ -115,6 +115,13 @@ pub fn handler(
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
+    msg!(
+        "CALC {:?}",
+        ctx.accounts
+            .position
+            .token_amounts_from_liquidity_round_up(liquidity_amount)?
+    );
+
     whirlpool::cpi::increase_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
         liquidity_amount,
@@ -126,6 +133,7 @@ pub fn handler(
 
     ctx.accounts.token_owner_account_a.reload()?;
     ctx.accounts.token_owner_account_b.reload()?;
+
     msg!("A {}", amount_a - ctx.accounts.token_owner_account_a.amount);
     msg!("B {}", amount_b - ctx.accounts.token_owner_account_b.amount);
     msg!("L {}", liquidity_after);
