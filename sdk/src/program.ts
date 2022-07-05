@@ -3,6 +3,7 @@ import { AnchorProvider, BN, Idl, Program, web3 } from "@project-serum/anchor";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token2";
 import IDL from "./idl/ggoldca.json";
@@ -79,9 +80,9 @@ export class GGoldcaSDK {
     );
   }
 
-  async initializeVaultIx(
+  async initializeVaultTx(
     params: InitializeVaultParams
-  ): Promise<web3.TransactionInstruction> {
+  ): Promise<web3.Transaction> {
     const { poolId, userSigner } = params;
 
     const _poolId = poolId.toString();
@@ -125,7 +126,7 @@ export class GGoldcaSDK {
       false
     );
 
-    return this.program.methods
+    const tx = await this.program.methods
       .initializeVault()
       .accounts({
         userSigner,
@@ -142,7 +143,31 @@ export class GGoldcaSDK {
         tokenProgram: TOKEN_PROGRAM_ID,
         rent: web3.SYSVAR_RENT_PUBKEY,
       })
-      .instruction();
+      .transaction();
+
+    // Create rewards ATAs
+    const rewardMints = poolData.rewardInfos
+      .map((info) => info.mint)
+      .filter((k) => k.toString() !== web3.PublicKey.default.toString());
+
+    const rewardAccounts = await Promise.all(
+      rewardMints.map(async (key) =>
+        getAssociatedTokenAddress(key, vaultAccount, true)
+      )
+    );
+
+    rewardAccounts.forEach((pubkey, indx) => {
+      tx.add(
+        createAssociatedTokenAccountInstruction(
+          userSigner,
+          pubkey,
+          vaultAccount,
+          rewardMints[indx]
+        )
+      );
+    });
+
+    return tx;
   }
 
   async depositIx(params: DepositParams): Promise<web3.TransactionInstruction> {

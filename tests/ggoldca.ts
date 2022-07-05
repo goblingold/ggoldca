@@ -65,9 +65,6 @@ describe("ggoldca", () => {
     new wh.AccountFetcher(program.provider.connection)
   );
 
-  let vaultInputTokenAAccount;
-  let vaultInputTokenBAccount;
-
   const [vaultAccount, _bumpVault] =
     anchor.web3.PublicKey.findProgramAddressSync(
       [
@@ -84,38 +81,11 @@ describe("ggoldca", () => {
       program.programId
     );
 
-  let rewardAccounts;
-  let rewardWhirlpoolVaults;
   it("Initialize vault", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
-    const rewardMints = poolData.rewardInfos
-      .map((info) => info.mint)
-      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
-
-    rewardAccounts = await Promise.all(
-      rewardMints.map(async (key) =>
-        getAssociatedTokenAddress(key, vaultAccount, true)
-      )
-    );
-
-    const tx = new anchor.web3.Transaction().add(
-      await ggClient.initializeVaultIx({
-        userSigner,
-        poolId: POOL_ID,
-      })
-    );
-
-    rewardAccounts.forEach((pubkey, indx) => {
-      tx.add(
-        createAssociatedTokenAccountInstruction(
-          userSigner,
-          pubkey,
-          vaultAccount,
-          rewardMints[indx]
-        )
-      );
+    const tx = await ggClient.initializeVaultTx({
+      userSigner,
+      poolId: POOL_ID,
     });
-
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("initialize_vault", txSig);
   });
@@ -374,6 +344,9 @@ describe("ggoldca", () => {
     console.log("init_tick_arrays_2", txSig);
   });
 
+  let vaultInputTokenAAccount;
+  let vaultInputTokenBAccount;
+
   it("Deposit", async () => {
     const poolData = await whClient.fetcher.getPool(POOL_ID);
 
@@ -512,9 +485,19 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    rewardWhirlpoolVaults = poolData.rewardInfos
+    const rewardWhirlpoolVaults = poolData.rewardInfos
       .map((info) => info.vault)
       .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    const rewardMints = poolData.rewardInfos
+      .map((info) => info.mint)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    const rewardAccounts = await Promise.all(
+      rewardMints.map(async (key) =>
+        getAssociatedTokenAddress(key, vaultAccount, true)
+      )
+    );
 
     const remainingAccounts = [...rewardAccounts, ...rewardWhirlpoolVaults].map(
       (pubkey) =>
