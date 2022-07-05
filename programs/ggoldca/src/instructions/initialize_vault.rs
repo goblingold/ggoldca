@@ -59,13 +59,13 @@ pub struct InitializeVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<InitializeVault>, bump_vault: u8, bump_lp: u8) -> Result<()> {
+pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
     ctx.accounts
         .vault_account
         .set_inner(VaultAccount::init(InitVaultAccountParams {
             bumps: Bumps {
-                vault: bump_vault,
-                lp_token_mint: bump_lp,
+                vault: *ctx.bumps.get("vault_account").unwrap(),
+                lp_token_mint: *ctx.bumps.get("vault_lp_token_mint_pubkey").unwrap(),
             },
             input_token_a_mint_pubkey: ctx.accounts.input_token_a_mint_address.key(),
             input_token_b_mint_pubkey: ctx.accounts.input_token_b_mint_address.key(),

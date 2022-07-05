@@ -23,12 +23,8 @@ const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 pub mod ggoldca {
     use super::*;
 
-    pub fn initialize_vault(
-        ctx: Context<InitializeVault>,
-        bump_vault: u8,
-        bump_lp: u8,
-    ) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, bump_vault, bump_lp)
+    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
+        instructions::initialize_vault::handler(ctx)
     }
 
     pub fn open_position(

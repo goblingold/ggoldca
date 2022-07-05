@@ -62,7 +62,7 @@ describe("ggoldca", () => {
   let vaultInputTokenAAccount;
   let vaultInputTokenBAccount;
 
-  const [vaultAccount, bumpVault] =
+  const [vaultAccount, _bumpVault] =
     anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("vault"),
@@ -72,7 +72,7 @@ describe("ggoldca", () => {
       program.programId
     );
 
-  const [vaultLpTokenMintPubkey, bumpLp] =
+  const [vaultLpTokenMintPubkey, _bumpLp] =
     anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("mint"), vaultAccount.toBuffer()],
       program.programId
@@ -115,7 +115,7 @@ describe("ggoldca", () => {
     );
 
     const tx = await program.methods
-      .initializeVault(bumpVault, bumpLp)
+      .initializeVault()
       .accounts({
         userSigner,
         inputTokenAMintAddress: TOKEN_A_MINT_PUBKEY,
