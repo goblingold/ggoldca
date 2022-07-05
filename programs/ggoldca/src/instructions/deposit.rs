@@ -53,7 +53,7 @@ pub struct DepositWithdraw<'info> {
     )]
     pub user_token_b_account: Account<'info, TokenAccount>,
 
-    #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
+    #[account(address = whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
     pub position: PositionAccounts<'info>,
@@ -68,61 +68,56 @@ pub struct DepositWithdraw<'info> {
 }
 
 impl<'info> DepositWithdraw<'info> {
-    fn transfer_from_user_to_vault_ctx(
+    fn transfer_token_a_from_user_to_vault_ctx(
         &self,
-        user: &Account<'info, TokenAccount>,
-        vault: &Account<'info, TokenAccount>,
     ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        CpiContext::new(
-            self.token_program.to_account_info(),
-            Transfer {
-                from: user.to_account_info(),
-                to: vault.to_account_info(),
-                authority: self.user_signer.to_account_info(),
-            },
+        self._transfer_from_user_to_vault_ctx(
+            &self.user_token_a_account,
+            &self.vault_input_token_a_account,
         )
     }
 
-    pub fn transfer_from_vault_to_user_ctx(
+    fn transfer_token_b_from_user_to_vault_ctx(
         &self,
-        vault: &Account<'info, TokenAccount>,
-        user: &Account<'info, TokenAccount>,
     ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
-        CpiContext::new(
-            self.token_program.to_account_info(),
-            Transfer {
-                from: vault.to_account_info(),
-                to: user.to_account_info(),
-                authority: self.vault_account.to_account_info(),
-            },
+        self._transfer_from_user_to_vault_ctx(
+            &self.user_token_b_account,
+            &self.vault_input_token_b_account,
         )
     }
 
-    fn delegate_user_to_vault_ctx(
+    pub fn transfer_token_a_from_vault_to_user_ctx(
         &self,
-        account: &Account<'info, TokenAccount>,
-    ) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
-        CpiContext::new(
-            self.token_program.to_account_info(),
-            Approve {
-                to: account.to_account_info(),
-                delegate: self.vault_account.to_account_info(),
-                authority: self.user_signer.to_account_info(),
-            },
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        self._transfer_from_vault_to_user_ctx(
+            &self.vault_input_token_a_account,
+            &self.user_token_a_account,
         )
     }
 
-    fn revoke_vault_ctx(
+    pub fn transfer_token_b_from_vault_to_user_ctx(
         &self,
-        account: &Account<'info, TokenAccount>,
-    ) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
-        CpiContext::new(
-            self.token_program.to_account_info(),
-            Revoke {
-                source: account.to_account_info(),
-                authority: self.user_signer.to_account_info(),
-            },
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        self._transfer_from_vault_to_user_ctx(
+            &self.vault_input_token_b_account,
+            &self.user_token_b_account,
         )
+    }
+
+    fn delegate_user_token_a_to_vault_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+        self._delegate_user_to_vault_ctx(&self.user_token_a_account)
+    }
+
+    fn delegate_user_token_b_to_vault_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+        self._delegate_user_to_vault_ctx(&self.user_token_b_account)
+    }
+
+    fn revoke_vault_from_user_token_a_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+        self._revoke_vault_from_user_ctx(&self.user_token_a_account)
+    }
+
+    fn revoke_vault_from_user_token_b_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+        self._revoke_vault_from_user_ctx(&self.user_token_b_account)
     }
 
     fn mint_lp_to_user_ctx(&self) -> CpiContext<'_, '_, '_, 'info, MintTo<'info>> {
@@ -168,6 +163,63 @@ impl<'info> DepositWithdraw<'info> {
             },
         )
     }
+
+    fn _transfer_from_user_to_vault_ctx(
+        &self,
+        user: &Account<'info, TokenAccount>,
+        vault: &Account<'info, TokenAccount>,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Transfer {
+                from: user.to_account_info(),
+                to: vault.to_account_info(),
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
+
+    fn _transfer_from_vault_to_user_ctx(
+        &self,
+        vault: &Account<'info, TokenAccount>,
+        user: &Account<'info, TokenAccount>,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Transfer {
+                from: vault.to_account_info(),
+                to: user.to_account_info(),
+                authority: self.vault_account.to_account_info(),
+            },
+        )
+    }
+
+    fn _delegate_user_to_vault_ctx(
+        &self,
+        account: &Account<'info, TokenAccount>,
+    ) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Approve {
+                to: account.to_account_info(),
+                delegate: self.vault_account.to_account_info(),
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
+
+    fn _revoke_vault_from_user_ctx(
+        &self,
+        account: &Account<'info, TokenAccount>,
+    ) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Revoke {
+                source: account.to_account_info(),
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
 }
 
 pub fn handler(
@@ -188,10 +240,7 @@ pub fn handler(
         if vault_amount_a > 0 {
             let amount_a = vault_amount_a.safe_mul_div_round_up(lp_amount, supply)?;
             token::transfer(
-                ctx.accounts.transfer_from_user_to_vault_ctx(
-                    &ctx.accounts.user_token_a_account,
-                    &ctx.accounts.vault_input_token_a_account,
-                ),
+                ctx.accounts.transfer_token_a_from_user_to_vault_ctx(),
                 amount_a,
             )?;
 
@@ -202,10 +251,7 @@ pub fn handler(
         if vault_amount_b > 0 {
             let amount_b = vault_amount_b.safe_mul_div_round_up(lp_amount, supply)?;
             token::transfer(
-                ctx.accounts.transfer_from_user_to_vault_ctx(
-                    &ctx.accounts.user_token_b_account,
-                    &ctx.accounts.vault_input_token_b_account,
-                ),
+                ctx.accounts.transfer_token_b_from_user_to_vault_ctx(),
                 amount_b,
             )?;
 
@@ -220,14 +266,11 @@ pub fn handler(
     };
 
     token::approve(
-        ctx.accounts
-            .delegate_user_to_vault_ctx(&ctx.accounts.user_token_a_account),
+        ctx.accounts.delegate_user_token_a_to_vault_ctx(),
         max_amount_a,
     )?;
-
     token::approve(
-        ctx.accounts
-            .delegate_user_to_vault_ctx(&ctx.accounts.user_token_b_account),
+        ctx.accounts.delegate_user_token_b_to_vault_ctx(),
         max_amount_b,
     )?;
 
@@ -260,15 +303,8 @@ pub fn handler(
     msg!("B {}", user_b - ctx.accounts.user_token_b_account.amount);
     msg!("L {}", liquidity_after);
 
-    token::revoke(
-        ctx.accounts
-            .revoke_vault_ctx(&ctx.accounts.user_token_a_account),
-    )?;
-
-    token::revoke(
-        ctx.accounts
-            .revoke_vault_ctx(&ctx.accounts.user_token_b_account),
-    )?;
+    token::revoke(ctx.accounts.revoke_vault_from_user_token_a_ctx())?;
+    token::revoke(ctx.accounts.revoke_vault_from_user_token_b_ctx())?;
 
     Ok(())
 }

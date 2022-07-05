@@ -28,7 +28,7 @@ pub struct Rebalance<'info> {
     )]
     pub vault_input_token_b_account: Account<'info, TokenAccount>,
 
-    #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
+    #[account(address = whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
 

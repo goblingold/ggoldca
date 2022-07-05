@@ -31,10 +31,7 @@ pub fn handler(
         let amount_a = vault_amount_a.safe_mul_div(lp_amount, supply)?;
         token::transfer(
             ctx.accounts
-                .transfer_from_vault_to_user_ctx(
-                    &ctx.accounts.vault_input_token_a_account,
-                    &ctx.accounts.user_token_a_account,
-                )
+                .transfer_token_a_from_vault_to_user_ctx()
                 .with_signer(signer),
             amount_a,
         )?;
@@ -47,10 +44,7 @@ pub fn handler(
         let amount_b = vault_amount_b.safe_mul_div(lp_amount, supply)?;
         token::transfer(
             ctx.accounts
-                .transfer_from_vault_to_user_ctx(
-                    &ctx.accounts.vault_input_token_b_account,
-                    &ctx.accounts.user_token_b_account,
-                )
+                .transfer_token_b_from_vault_to_user_ctx()
                 .with_signer(signer),
             amount_b,
         )?;

@@ -21,7 +21,7 @@ pub struct CollectFeesAndRewards<'info> {
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
 
-    #[account(constraint = whirlpool_program_id.key == &whirlpool::ID)]
+    #[account(address = whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
 
