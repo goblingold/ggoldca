@@ -52,7 +52,11 @@ describe("ggoldca", () => {
   const program = anchor.workspace.Ggoldca as Program<Ggoldca>;
   const userSigner = program.provider.wallet.publicKey;
 
-  const ggClient = new GGoldcaSDK(program.programId);
+  const ggClient = new GGoldcaSDK({
+    connection: program.provider.connection,
+    programId: program.programId,
+  });
+
   const whClient = wh.buildWhirlpoolClient(
     wh.WhirlpoolContext.withProvider(
       program.provider,
@@ -88,47 +92,16 @@ describe("ggoldca", () => {
       .map((info) => info.mint)
       .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
 
-    rewardWhirlpoolVaults = poolData.rewardInfos
-      .map((info) => info.vault)
-      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
-
     rewardAccounts = await Promise.all(
       rewardMints.map(async (key) =>
         getAssociatedTokenAddress(key, vaultAccount, true)
       )
     );
 
-    vaultInputTokenAAccount = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      vaultAccount,
-      true
-    );
-
-    vaultInputTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      vaultAccount,
-      true
-    );
-
-    const daoTreasuryLpTokenAccount = await getAssociatedTokenAddress(
-      vaultLpTokenMintPubkey,
-      DAO_TREASURY_PUBKEY,
-      false
-    );
-
     const tx = new anchor.web3.Transaction().add(
       await ggClient.initializeVaultIx({
-        accounts: {
-          userSigner,
-          inputTokenAMintAddress: TOKEN_A_MINT_PUBKEY,
-          inputTokenBMintAddress: TOKEN_B_MINT_PUBKEY,
-          vaultAccount,
-          vaultInputTokenAAccount,
-          vaultInputTokenBAccount,
-          vaultLpTokenMintPubkey,
-          daoTreasuryLpTokenAccount,
-          daoTreasuryOwner: DAO_TREASURY_PUBKEY,
-        },
+        userSigner,
+        poolId: POOL_ID,
       })
     );
 
@@ -423,6 +396,18 @@ describe("ggoldca", () => {
       userSigner
     );
 
+    vaultInputTokenAAccount = await getAssociatedTokenAddress(
+      TOKEN_A_MINT_PUBKEY,
+      vaultAccount,
+      true
+    );
+
+    vaultInputTokenBAccount = await getAssociatedTokenAddress(
+      TOKEN_B_MINT_PUBKEY,
+      vaultAccount,
+      true
+    );
+
     const tx = new anchor.web3.Transaction()
       .add(
         createAssociatedTokenAccountInstruction(
@@ -526,6 +511,10 @@ describe("ggoldca", () => {
       TOKEN_B_MINT_PUBKEY,
       userSigner
     );
+
+    rewardWhirlpoolVaults = poolData.rewardInfos
+      .map((info) => info.vault)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
 
     const remainingAccounts = [...rewardAccounts, ...rewardWhirlpoolVaults].map(
       (pubkey) =>
