@@ -1,12 +1,14 @@
 {
+  "name": "ggoldca-sdk",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+    "eslint": "eslint 'src/**/*.ts'"
   },
-  "private": true,
-  "workspaces": [
-    "sdk"
-  ],
   "dependencies": {
     "@orca-so/whirlpools-sdk": "^0.2.3",
     "@project-serum/anchor": "^0.24.2",
@@ -16,6 +18,9 @@
     "yarn": "^1.22.19"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.15.0",
+    "@typescript-eslint/parser": "^5.15.0",
+    "eslint": "^8.11.0",
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.0.0",
