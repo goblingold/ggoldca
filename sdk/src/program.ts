@@ -21,31 +21,34 @@ interface DepositParams {
   lpAmount: BN;
   maxAmountA: BN;
   maxAmountB: BN;
-  accounts: DepositWithdrawAccounts;
+  userSigner: web3.PublicKey;
+  poolId: web3.PublicKey;
+  position: PositionAccounts;
 }
 
 interface WithdrawParams {
   lpAmount: BN;
   minAmountA: BN;
   minAmountB: BN;
-  accounts: DepositWithdrawAccounts;
+  userSigner: web3.PublicKey;
+  poolId: web3.PublicKey;
+  position: PositionAccounts;
 }
 
 interface DepositWithdrawAccounts {
-  accounts: {
-    userSigner: web3.PublicKey;
-    vaultAccount: web3.PublicKey;
-    vaultLpTokenMintPubkey: web3.PublicKey;
-    vaultInputTokenAAccount: web3.PublicKey;
-    vaultInputTokenBAccount: web3.PublicKey;
-    userLpTokenAccount: web3.PublicKey;
-    userTokenAAccount: web3.PublicKey;
-    userTokenBAccount: web3.PublicKey;
-    whirlpoolProgramId: web3.PublicKey;
-    position: PositionAccounts;
-    whTokenVaultA: web3.PublicKey;
-    whTokenVaultB: web3.PublicKey;
-  };
+  userSigner: web3.PublicKey;
+  vaultAccount: web3.PublicKey;
+  vaultLpTokenMintPubkey: web3.PublicKey;
+  vaultInputTokenAAccount: web3.PublicKey;
+  vaultInputTokenBAccount: web3.PublicKey;
+  userLpTokenAccount: web3.PublicKey;
+  userTokenAAccount: web3.PublicKey;
+  userTokenBAccount: web3.PublicKey;
+  whirlpoolProgramId: web3.PublicKey;
+  position: PositionAccounts;
+  whTokenVaultA: web3.PublicKey;
+  whTokenVaultB: web3.PublicKey;
+  tokenProgram: web3.PublicKey;
 }
 
 interface PositionAccounts {
@@ -56,8 +59,16 @@ interface PositionAccounts {
   tickArrayUpper: web3.PublicKey;
 }
 
+interface VaultKeys {
+  vaultAccount: web3.PublicKey;
+  vaultLpTokenMintPubkey: web3.PublicKey;
+  vaultInputTokenAAccount: web3.PublicKey;
+  vaultInputTokenBAccount: web3.PublicKey;
+}
+
 interface CachedData {
   whirlpool: Record<string, wh.WhirlpoolData>;
+  vaultKeys: Record<string, VaultKeys>;
 }
 
 interface ConstructorParams {
@@ -69,7 +80,7 @@ export class GGoldcaSDK {
   program;
   connection;
 
-  cached: CachedData = { whirlpool: {} };
+  cached: CachedData = { whirlpool: {}, vaultKeys: {} };
 
   public constructor(params: ConstructorParams) {
     this.connection = params.connection;
@@ -84,41 +95,14 @@ export class GGoldcaSDK {
     params: InitializeVaultParams
   ): Promise<web3.Transaction> {
     const { poolId, userSigner } = params;
+    const {
+      vaultAccount,
+      vaultLpTokenMintPubkey,
+      vaultInputTokenAAccount,
+      vaultInputTokenBAccount,
+    } = await this.getVaultKeys(poolId);
 
-    const _poolId = poolId.toString();
-    if (!this.cached.whirlpool[_poolId]) {
-      const fetcher = new wh.AccountFetcher(this.connection);
-      const poolData = await fetcher.getPool(poolId);
-
-      if (!poolData) {
-        throw new Error("Cannot fetch pool " + poolId);
-      }
-      this.cached.whirlpool[_poolId] = poolData;
-    }
-
-    const poolData = this.cached.whirlpool[_poolId];
-
-    const [vaultAccount, _bumpVault] = web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        poolData.tokenMintA.toBuffer(),
-        poolData.tokenMintB.toBuffer(),
-      ],
-      this.program.programId
-    );
-
-    const [vaultLpTokenMintPubkey, _bumpLp] =
-      web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("mint"), vaultAccount.toBuffer()],
-        this.program.programId
-      );
-
-    const [vaultInputTokenAAccount, vaultInputTokenBAccount] =
-      await Promise.all(
-        [poolData.tokenMintA, poolData.tokenMintB].map(async (key) =>
-          getAssociatedTokenAddress(key, vaultAccount, true)
-        )
-      );
+    const poolData = await this.getWhirlpoolData(poolId);
 
     const daoTreasuryLpTokenAccount = await getAssociatedTokenAddress(
       vaultLpTokenMintPubkey,
@@ -171,7 +155,15 @@ export class GGoldcaSDK {
   }
 
   async depositIx(params: DepositParams): Promise<web3.TransactionInstruction> {
-    const { lpAmount, maxAmountA, maxAmountB, accounts } = params;
+    const { lpAmount, maxAmountA, maxAmountB, userSigner, poolId, position } =
+      params;
+
+    const accounts = await this.depositWithdrawAccounts(
+      userSigner,
+      poolId,
+      position
+    );
+
     return this.program.methods
       .deposit(lpAmount, maxAmountA, maxAmountB)
       .accounts(accounts)
@@ -181,10 +173,101 @@ export class GGoldcaSDK {
   async withdrawIx(
     params: WithdrawParams
   ): Promise<web3.TransactionInstruction> {
-    const { lpAmount, minAmountA, minAmountB, accounts } = params;
+    const { lpAmount, minAmountA, minAmountB, userSigner, poolId, position } =
+      params;
+
+    const accounts = await this.depositWithdrawAccounts(
+      userSigner,
+      poolId,
+      position
+    );
+
     return this.program.methods
       .withdraw(lpAmount, minAmountA, minAmountB)
       .accounts(accounts)
       .instruction();
+  }
+
+  async getVaultKeys(poolId: web3.PublicKey): Promise<VaultKeys> {
+    const poolData = await this.getWhirlpoolData(poolId);
+
+    const [vaultAccount, _bumpVault] = web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vault"),
+        poolData.tokenMintA.toBuffer(),
+        poolData.tokenMintB.toBuffer(),
+      ],
+      this.program.programId
+    );
+
+    const [vaultLpTokenMintPubkey, _bumpLp] =
+      web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("mint"), vaultAccount.toBuffer()],
+        this.program.programId
+      );
+
+    const [vaultInputTokenAAccount, vaultInputTokenBAccount] =
+      await Promise.all(
+        [poolData.tokenMintA, poolData.tokenMintB].map(async (key) =>
+          getAssociatedTokenAddress(key, vaultAccount, true)
+        )
+      );
+
+    return {
+      vaultAccount,
+      vaultLpTokenMintPubkey,
+      vaultInputTokenAAccount,
+      vaultInputTokenBAccount,
+    };
+  }
+
+  async getWhirlpoolData(poolId: web3.PublicKey): Promise<wh.WhirlpoolData> {
+    const key = poolId.toString();
+    if (!this.cached.whirlpool[key]) {
+      const fetcher = new wh.AccountFetcher(this.connection);
+      const poolData = await fetcher.getPool(poolId);
+
+      if (!poolData) throw new Error("Cannot fetch pool " + key);
+      this.cached.whirlpool[key] = poolData;
+    }
+    return this.cached.whirlpool[key];
+  }
+
+  async depositWithdrawAccounts(
+    userSigner,
+    poolId,
+    position
+  ): Promise<DepositWithdrawAccounts> {
+    const poolData = await this.getWhirlpoolData(poolId);
+
+    const {
+      vaultAccount,
+      vaultLpTokenMintPubkey,
+      vaultInputTokenAAccount,
+      vaultInputTokenBAccount,
+    } = await this.getVaultKeys(poolId);
+
+    const [userLpTokenAccount, userTokenAAccount, userTokenBAccount] =
+      await Promise.all(
+        [vaultLpTokenMintPubkey, poolData.tokenMintA, poolData.tokenMintB].map(
+          async (key) => getAssociatedTokenAddress(key, userSigner)
+        )
+      );
+
+    return {
+      userSigner,
+      vaultAccount,
+      vaultLpTokenMintPubkey,
+      vaultInputTokenAAccount,
+      vaultInputTokenBAccount,
+      userLpTokenAccount,
+      userTokenAAccount,
+      userTokenBAccount,
+      whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      position,
+      whTokenVaultA: poolData.tokenVaultA,
+      whTokenVaultB: poolData.tokenVaultB,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    };
   }
 }

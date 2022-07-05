@@ -344,41 +344,16 @@ describe("ggoldca", () => {
     console.log("init_tick_arrays_2", txSig);
   });
 
-  let vaultInputTokenAAccount;
-  let vaultInputTokenBAccount;
-
   it("Deposit", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
-
     const lpAmount = new anchor.BN(1_000_000);
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
 
-    const userTokenAAccount = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
+    const { vaultLpTokenMintPubkey } = await ggClient.getVaultKeys(POOL_ID);
 
     const userLpTokenAccount = await getAssociatedTokenAddress(
       vaultLpTokenMintPubkey,
       userSigner
-    );
-
-    vaultInputTokenAAccount = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      vaultAccount,
-      true
-    );
-
-    vaultInputTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      vaultAccount,
-      true
     );
 
     const tx = new anchor.web3.Transaction()
@@ -395,20 +370,9 @@ describe("ggoldca", () => {
           lpAmount,
           maxAmountA,
           maxAmountB,
-          accounts: {
-            userSigner,
-            vaultAccount,
-            vaultLpTokenMintPubkey,
-            vaultInputTokenAAccount,
-            vaultInputTokenBAccount,
-            userLpTokenAccount,
-            userTokenAAccount,
-            userTokenBAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-            whTokenVaultA: poolData.tokenVaultA,
-            whTokenVaultB: poolData.tokenVaultB,
-            position: positionAccounts,
-          },
+          userSigner,
+          poolId: POOL_ID,
+          position: positionAccounts,
         })
       );
 
@@ -417,8 +381,6 @@ describe("ggoldca", () => {
   });
 
   it("Deposit with tokens in vault", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
-
     const lpAmount = new anchor.BN(2_000_000);
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
@@ -428,15 +390,7 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const userTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userLpTokenAccount = await getAssociatedTokenAddress(
-      vaultLpTokenMintPubkey,
-      userSigner
-    );
+    const { vaultInputTokenAAccount } = await ggClient.getVaultKeys(POOL_ID);
 
     const transferIx = createTransferInstruction(
       userTokenAAccount,
@@ -451,20 +405,9 @@ describe("ggoldca", () => {
         lpAmount,
         maxAmountA,
         maxAmountB,
-        accounts: {
-          userSigner,
-          vaultAccount,
-          vaultLpTokenMintPubkey,
-          vaultInputTokenAAccount,
-          vaultInputTokenBAccount,
-          userLpTokenAccount,
-          userTokenAAccount,
-          userTokenBAccount,
-          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-          whTokenVaultA: poolData.tokenVaultA,
-          whTokenVaultB: poolData.tokenVaultB,
-          position: positionAccounts,
-        },
+        userSigner,
+        poolId: POOL_ID,
+        position: positionAccounts,
       })
     );
 
@@ -473,17 +416,7 @@ describe("ggoldca", () => {
   });
 
   it("Collect fees & rewards", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
-
-    const tokenOwnerAccountA = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
-    );
-
-    const tokenOwnerAccountB = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
+    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
 
     const rewardWhirlpoolVaults = poolData.rewardInfos
       .map((info) => info.vault)
@@ -496,6 +429,12 @@ describe("ggoldca", () => {
     const rewardAccounts = await Promise.all(
       rewardMints.map(async (key) =>
         getAssociatedTokenAddress(key, vaultAccount, true)
+      )
+    );
+
+    const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
+      [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
+        getAssociatedTokenAddress(key, userSigner)
       )
     );
 
@@ -528,17 +467,16 @@ describe("ggoldca", () => {
   });
 
   it("Rebalance", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
+    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
 
-    const tokenOwnerAccountA = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
+    const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
+      [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
+        getAssociatedTokenAddress(key, userSigner)
+      )
     );
 
-    const tokenOwnerAccountB = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
+    const { vaultInputTokenAAccount, vaultInputTokenBAccount } =
+      await ggClient.getVaultKeys(POOL_ID);
 
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods
@@ -562,46 +500,18 @@ describe("ggoldca", () => {
   });
 
   it("Withdraw", async () => {
-    const poolData = await whClient.fetcher.getPool(POOL_ID);
-
     const lpAmount = new anchor.BN(3_000_000);
     const minAmountA = new anchor.BN(0);
     const minAmountB = new anchor.BN(0);
-
-    const userTokenAAccount = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userLpTokenAccount = await getAssociatedTokenAddress(
-      vaultLpTokenMintPubkey,
-      userSigner
-    );
 
     const tx = new anchor.web3.Transaction().add(
       await ggClient.withdrawIx({
         lpAmount,
         minAmountA,
         minAmountB,
-        accounts: {
-          userSigner,
-          vaultAccount,
-          vaultLpTokenMintPubkey,
-          vaultInputTokenAAccount,
-          vaultInputTokenBAccount,
-          userLpTokenAccount,
-          userTokenAAccount,
-          userTokenBAccount,
-          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-          whTokenVaultA: poolData.tokenVaultA,
-          whTokenVaultB: poolData.tokenVaultB,
-          position: positionAccounts2,
-        },
+        userSigner,
+        poolId: POOL_ID,
+        position: positionAccounts2,
       })
     );
 
@@ -609,32 +519,7 @@ describe("ggoldca", () => {
     console.log("withdraw", txSig);
   });
 
-  it("dummy final tx so validator logs are written", async () => {
-    const userTokenAAccount = await getAssociatedTokenAddress(
-      TOKEN_A_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userTokenBAccount = await getAssociatedTokenAddress(
-      TOKEN_B_MINT_PUBKEY,
-      userSigner
-    );
-
-    const userLpTokenAccount = await getAssociatedTokenAddress(
-      vaultLpTokenMintPubkey,
-      userSigner
-    );
-
-    let tx = new anchor.web3.Transaction().add(
-      createTransferInstruction(
-        userTokenAAccount,
-        vaultInputTokenAAccount,
-        userSigner,
-        0,
-        []
-      )
-    );
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("dummy_transfer", txSig);
+  it("Wait some time so validator logs are written", async () => {
+    return new Promise((resolve) => setTimeout(resolve, 100));
   });
 });
