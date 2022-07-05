@@ -8,6 +8,7 @@ import {
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { Decimal } from "decimal.js";
+import { GGoldcaSDK } from "ggoldca-sdk";
 import { Ggoldca } from "../target/types/ggoldca";
 
 const POOL_ID = new anchor.web3.PublicKey(
@@ -50,6 +51,11 @@ describe("ggoldca", () => {
 
   const program = anchor.workspace.Ggoldca as Program<Ggoldca>;
   const userSigner = program.provider.wallet.publicKey;
+
+  const ggClient = new GGoldcaSDK(program.programId);
+  console.log(ggClient);
+
+  return;
 
   const whClient = wh.buildWhirlpoolClient(
     wh.WhirlpoolContext.withProvider(
