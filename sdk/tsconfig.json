@@ -11,5 +11,6 @@
     "noImplicitAny": false,
     "skipLibCheck": true,
     "declaration": true
-  }
+  },
+  "include": ["src/**/*", "src/**/*.json"]
 }

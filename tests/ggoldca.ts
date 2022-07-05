@@ -53,10 +53,6 @@ describe("ggoldca", () => {
   const userSigner = program.provider.wallet.publicKey;
 
   const ggClient = new GGoldcaSDK(program.programId);
-  console.log(ggClient);
-
-  return;
-
   const whClient = wh.buildWhirlpoolClient(
     wh.WhirlpoolContext.withProvider(
       program.provider,
@@ -120,20 +116,21 @@ describe("ggoldca", () => {
       false
     );
 
-    const tx = await program.methods
-      .initializeVault()
-      .accounts({
-        userSigner,
-        inputTokenAMintAddress: TOKEN_A_MINT_PUBKEY,
-        inputTokenBMintAddress: TOKEN_B_MINT_PUBKEY,
-        vaultAccount,
-        vaultInputTokenAAccount,
-        vaultInputTokenBAccount,
-        vaultLpTokenMintPubkey,
-        daoTreasuryLpTokenAccount,
-        daoTreasuryOwner: DAO_TREASURY_PUBKEY,
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.initializeVaultIx({
+        accounts: {
+          userSigner,
+          inputTokenAMintAddress: TOKEN_A_MINT_PUBKEY,
+          inputTokenBMintAddress: TOKEN_B_MINT_PUBKEY,
+          vaultAccount,
+          vaultInputTokenAAccount,
+          vaultInputTokenBAccount,
+          vaultLpTokenMintPubkey,
+          daoTreasuryLpTokenAccount,
+          daoTreasuryOwner: DAO_TREASURY_PUBKEY,
+        },
       })
-      .transaction();
+    );
 
     rewardAccounts.forEach((pubkey, indx) => {
       tx.add(
@@ -436,9 +433,11 @@ describe("ggoldca", () => {
         )
       )
       .add(
-        await program.methods
-          .deposit(lpAmount, maxAmountA, maxAmountB)
-          .accounts({
+        await ggClient.depositIx({
+          lpAmount,
+          maxAmountA,
+          maxAmountB,
+          accounts: {
             userSigner,
             vaultAccount,
             vaultLpTokenMintPubkey,
@@ -451,8 +450,8 @@ describe("ggoldca", () => {
             whTokenVaultA: poolData.tokenVaultA,
             whTokenVaultB: poolData.tokenVaultB,
             position: positionAccounts,
-          })
-          .transaction()
+          },
+        })
       );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
@@ -490,9 +489,11 @@ describe("ggoldca", () => {
     );
 
     const tx = new anchor.web3.Transaction().add(transferIx).add(
-      await program.methods
-        .deposit(lpAmount, maxAmountA, maxAmountB)
-        .accounts({
+      await ggClient.depositIx({
+        lpAmount,
+        maxAmountA,
+        maxAmountB,
+        accounts: {
           userSigner,
           vaultAccount,
           vaultLpTokenMintPubkey,
@@ -505,8 +506,8 @@ describe("ggoldca", () => {
           whTokenVaultA: poolData.tokenVaultA,
           whTokenVaultB: poolData.tokenVaultB,
           position: positionAccounts,
-        })
-        .transaction()
+        },
+      })
     );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
@@ -610,23 +611,27 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const tx = await program.methods
-      .withdraw(lpAmount, minAmountA, minAmountB)
-      .accounts({
-        userSigner,
-        vaultAccount,
-        vaultLpTokenMintPubkey,
-        vaultInputTokenAAccount,
-        vaultInputTokenBAccount,
-        userLpTokenAccount,
-        userTokenAAccount,
-        userTokenBAccount,
-        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        whTokenVaultA: poolData.tokenVaultA,
-        whTokenVaultB: poolData.tokenVaultB,
-        position: positionAccounts2,
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.withdrawIx({
+        lpAmount,
+        minAmountA,
+        minAmountB,
+        accounts: {
+          userSigner,
+          vaultAccount,
+          vaultLpTokenMintPubkey,
+          vaultInputTokenAAccount,
+          vaultInputTokenBAccount,
+          userLpTokenAccount,
+          userTokenAAccount,
+          userTokenBAccount,
+          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+          whTokenVaultA: poolData.tokenVaultA,
+          whTokenVaultB: poolData.tokenVaultB,
+          position: positionAccounts2,
+        },
       })
-      .transaction();
+    );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("withdraw", txSig);
