@@ -7,10 +7,10 @@ use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
-use anchor_spl::token::{self, Approve, Mint, MintTo, Revoke, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Approve, Burn, Mint, MintTo, Revoke, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
-pub struct Deposit<'info> {
+pub struct DepositWithdraw<'info> {
     pub user_signer: Signer<'info>,
     #[account(
         seeds = [VAULT_ACCOUNT_SEED, vault_account.input_token_a_mint_pubkey.as_ref(), vault_account.input_token_b_mint_pubkey.as_ref()],
@@ -67,7 +67,7 @@ pub struct Deposit<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-impl<'info> Deposit<'info> {
+impl<'info> DepositWithdraw<'info> {
     fn transfer_from_user_to_vault_ctx(
         &self,
         from: AccountInfo<'info>,
@@ -79,6 +79,21 @@ impl<'info> Deposit<'info> {
                 from,
                 to,
                 authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
+
+    pub fn transfer_from_vault_to_user_ctx(
+        &self,
+        from: AccountInfo<'info>,
+        to: AccountInfo<'info>,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Transfer {
+                from,
+                to,
+                authority: self.vault_account.to_account_info(),
             },
         )
     }
@@ -121,7 +136,18 @@ impl<'info> Deposit<'info> {
         )
     }
 
-    fn modify_liquidity_ctx(
+    pub fn burn_user_lps_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Burn<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Burn {
+                mint: self.vault_lp_token_mint_pubkey.to_account_info(),
+                from: self.user_lp_token_account.to_account_info(),
+                authority: self.user_signer.to_account_info(),
+            },
+        )
+    }
+
+    pub fn modify_liquidity_ctx(
         &self,
     ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::ModifyLiquidity<'info>>
     {
@@ -145,7 +171,7 @@ impl<'info> Deposit<'info> {
 }
 
 pub fn handler(
-    ctx: Context<Deposit>,
+    ctx: Context<DepositWithdraw>,
     lp_amount: u64,
     mut max_amount_a: u64,
     mut max_amount_b: u64,

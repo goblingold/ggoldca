@@ -41,7 +41,7 @@ pub mod ggoldca {
     }
 
     pub fn deposit(
-        ctx: Context<Deposit>,
+        ctx: Context<DepositWithdraw>,
         lp_amount: u64,
         max_amount_a: u64,
         max_amount_b: u64,
@@ -50,7 +50,7 @@ pub mod ggoldca {
     }
 
     pub fn withdraw(
-        ctx: Context<Withdraw>,
+        ctx: Context<DepositWithdraw>,
         lp_amount: u64,
         min_amount_a: u64,
         min_amount_b: u64,
