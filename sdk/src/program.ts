@@ -105,6 +105,7 @@ export class GGoldcaSDK {
       .initializeVault()
       .accounts({
         userSigner,
+        whirlpool: poolId,
         inputTokenAMintAddress: poolData.tokenMintA,
         inputTokenBMintAddress: poolData.tokenMintB,
         vaultAccount,

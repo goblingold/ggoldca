@@ -32,11 +32,7 @@ export class Fetcher {
     const poolData = await this.getWhirlpoolData(poolId);
 
     const [vaultAccount, _bumpVault] = web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        poolData.tokenMintA.toBuffer(),
-        poolData.tokenMintB.toBuffer(),
-      ],
+      [Buffer.from("vault"), poolId.toBuffer()],
       this.programId
     );
 

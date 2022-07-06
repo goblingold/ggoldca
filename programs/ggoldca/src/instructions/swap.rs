@@ -10,7 +10,7 @@ use anchor_spl::token::Token;
 pub struct Swap<'info> {
     pub user_signer: Signer<'info>,
     #[account(
-        seeds = [VAULT_ACCOUNT_SEED, vault_account.input_token_a_mint_pubkey.as_ref(), vault_account.input_token_b_mint_pubkey.as_ref()],
+        seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,

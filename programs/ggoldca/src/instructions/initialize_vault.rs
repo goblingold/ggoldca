@@ -9,13 +9,18 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 pub struct InitializeVault<'info> {
     #[account(mut)]
     pub user_signer: Signer<'info>,
+
+    #[account(owner = whirlpool::ID)]
+    /// CHECK: owner and account data is checked
+    pub whirlpool: AccountInfo<'info>,
+
     pub input_token_a_mint_address: Account<'info, Mint>,
     pub input_token_b_mint_address: Account<'info, Mint>,
     #[account(
         init,
         payer = user_signer,
         space = 8 + VaultAccount::SIZE,
-        seeds = [VAULT_ACCOUNT_SEED, input_token_a_mint_address.key().as_ref(), input_token_b_mint_address.key().as_ref()],
+        seeds = [VAULT_ACCOUNT_SEED, whirlpool.key().as_ref()],
         bump
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -60,6 +65,15 @@ pub struct InitializeVault<'info> {
 }
 
 pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
+    // Ensure the whirlpool has the right account data
+    {
+        use anchor_lang_for_whirlpool::AccountDeserialize;
+        use std::borrow::Borrow;
+
+        let acc_data_slice: &[u8] = &ctx.accounts.whirlpool.try_borrow_data()?;
+        whirlpool::state::whirlpool::Whirlpool::try_deserialize(&mut acc_data_slice.borrow())?;
+    }
+
     ctx.accounts
         .vault_account
         .set_inner(VaultAccount::init(InitVaultAccountParams {
@@ -67,6 +81,7 @@ pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
                 vault: *ctx.bumps.get("vault_account").unwrap(),
                 lp_token_mint: *ctx.bumps.get("vault_lp_token_mint_pubkey").unwrap(),
             },
+            whirlpool_id: ctx.accounts.whirlpool.key(),
             input_token_a_mint_pubkey: ctx.accounts.input_token_a_mint_address.key(),
             input_token_b_mint_pubkey: ctx.accounts.input_token_b_mint_address.key(),
             dao_treasury_lp_token_account: ctx.accounts.dao_treasury_lp_token_account.key(),
