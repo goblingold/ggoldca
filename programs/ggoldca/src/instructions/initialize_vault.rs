@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::state::{Bumps, InitVaultAccountParams, VaultAccount};
 use crate::TREASURY_PUBKEY;
 use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
@@ -66,13 +67,24 @@ pub struct InitializeVault<'info> {
 
 pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
     // Ensure the whirlpool has the right account data
-    {
+    let (token_mint_a, token_mint_b) = {
         use anchor_lang_for_whirlpool::AccountDeserialize;
         use std::borrow::Borrow;
 
         let acc_data_slice: &[u8] = &ctx.accounts.whirlpool.try_borrow_data()?;
-        whirlpool::state::whirlpool::Whirlpool::try_deserialize(&mut acc_data_slice.borrow())?;
-    }
+        let pool =
+            whirlpool::state::whirlpool::Whirlpool::try_deserialize(&mut acc_data_slice.borrow())?;
+        (pool.token_mint_a, pool.token_mint_b)
+    };
+
+    require!(
+        ctx.accounts.input_token_a_mint_address.key() == token_mint_a,
+        ErrorCode::InvalidInputMint
+    );
+    require!(
+        ctx.accounts.input_token_b_mint_address.key() == token_mint_b,
+        ErrorCode::InvalidInputMint
+    );
 
     ctx.accounts
         .vault_account

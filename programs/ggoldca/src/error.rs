@@ -19,4 +19,7 @@ pub enum ErrorCode {
 
     #[msg("Invalid number remaining accounts")]
     InvalidRemainingAccounts,
+
+    #[msg("Invalid input token mint pubkey")]
+    InvalidInputMint,
 }
