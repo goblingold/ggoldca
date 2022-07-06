@@ -76,7 +76,7 @@ describe("ggoldca", () => {
     const tokenADecimal = poolTokenAInfo.decimals;
     const tokenBDecimal = poolTokenBInfo.decimals;
 
-    const { vaultAccount } = await ggClient.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
 
     const tickLower = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(
@@ -136,7 +136,7 @@ describe("ggoldca", () => {
     const poolTokenAInfo = pool.getTokenAInfo();
     const poolTokenBInfo = pool.getTokenBInfo();
 
-    const { vaultAccount } = await ggClient.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
 
     const tokenADecimal = poolTokenAInfo.decimals;
     const tokenBDecimal = poolTokenBInfo.decimals;
@@ -193,7 +193,7 @@ describe("ggoldca", () => {
   });
 
   it("Init tick arrays", async () => {
-    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
     const positionData = await whFetcher.getPosition(position);
 
     const startTickLower = wh.TickUtil.getStartTickIndex(
@@ -255,7 +255,7 @@ describe("ggoldca", () => {
   });
 
   it("Init tick arrays 2", async () => {
-    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
     const positionData = await whFetcher.getPosition(position2);
 
     const startTickLower = wh.TickUtil.getStartTickIndex(
@@ -321,7 +321,9 @@ describe("ggoldca", () => {
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
 
-    const { vaultLpTokenMintPubkey } = await ggClient.getVaultKeys(POOL_ID);
+    const { vaultLpTokenMintPubkey } = await ggClient.fetcher.getVaultKeys(
+      POOL_ID
+    );
 
     const userLpTokenAccount = await getAssociatedTokenAddress(
       vaultLpTokenMintPubkey,
@@ -357,14 +359,16 @@ describe("ggoldca", () => {
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
 
-    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
 
     const userTokenAAccount = await getAssociatedTokenAddress(
       poolData.tokenMintA,
       userSigner
     );
 
-    const { vaultInputTokenAAccount } = await ggClient.getVaultKeys(POOL_ID);
+    const { vaultInputTokenAAccount } = await ggClient.fetcher.getVaultKeys(
+      POOL_ID
+    );
 
     const transferIx = createTransferInstruction(
       userTokenAAccount,
@@ -390,8 +394,8 @@ describe("ggoldca", () => {
   });
 
   it("Collect fees & rewards", async () => {
-    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.getVaultKeys(POOL_ID);
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
+    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
 
     const rewardWhirlpoolVaults = poolData.rewardInfos
       .map((info) => info.vault)
@@ -442,8 +446,8 @@ describe("ggoldca", () => {
   });
 
   it("Rebalance", async () => {
-    const poolData = await ggClient.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.getVaultKeys(POOL_ID);
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
+    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
 
     const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
       [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
@@ -452,7 +456,7 @@ describe("ggoldca", () => {
     );
 
     const { vaultInputTokenAAccount, vaultInputTokenBAccount } =
-      await ggClient.getVaultKeys(POOL_ID);
+      await ggClient.fetcher.getVaultKeys(POOL_ID);
 
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods

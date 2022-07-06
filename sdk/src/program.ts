@@ -6,6 +6,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token2";
+import { Fetcher } from "./fetcher";
 import IDL from "./idl/ggoldca.json";
 
 const DAO_TREASURY_PUBKEY = new web3.PublicKey(
@@ -59,18 +60,6 @@ interface PositionAccounts {
   tickArrayUpper: web3.PublicKey;
 }
 
-interface VaultKeys {
-  vaultAccount: web3.PublicKey;
-  vaultLpTokenMintPubkey: web3.PublicKey;
-  vaultInputTokenAAccount: web3.PublicKey;
-  vaultInputTokenBAccount: web3.PublicKey;
-}
-
-interface CachedData {
-  whirlpool: Record<string, wh.WhirlpoolData>;
-  vaultKeys: Record<string, VaultKeys>;
-}
-
 interface ConstructorParams {
   programId: web3.PublicKey;
   connection: web3.Connection;
@@ -78,15 +67,17 @@ interface ConstructorParams {
 
 export class GGoldcaSDK {
   program;
-  connection;
-
-  cached: CachedData = { whirlpool: {}, vaultKeys: {} };
+  fetcher: Fetcher;
+  connection: web3.Connection;
 
   public constructor(params: ConstructorParams) {
-    this.connection = params.connection;
+    const { programId, connection } = params;
+
+    this.connection = connection;
+    this.fetcher = new Fetcher(connection, programId);
     this.program = new Program(
       IDL as Idl,
-      params.programId,
+      programId,
       null as unknown as AnchorProvider
     );
   }
@@ -100,9 +91,9 @@ export class GGoldcaSDK {
       vaultLpTokenMintPubkey,
       vaultInputTokenAAccount,
       vaultInputTokenBAccount,
-    } = await this.getVaultKeys(poolId);
+    } = await this.fetcher.getVaultKeys(poolId);
 
-    const poolData = await this.getWhirlpoolData(poolId);
+    const poolData = await this.fetcher.getWhirlpoolData(poolId);
 
     const daoTreasuryLpTokenAccount = await getAssociatedTokenAddress(
       vaultLpTokenMintPubkey,
@@ -188,64 +179,19 @@ export class GGoldcaSDK {
       .instruction();
   }
 
-  async getVaultKeys(poolId: web3.PublicKey): Promise<VaultKeys> {
-    const poolData = await this.getWhirlpoolData(poolId);
-
-    const [vaultAccount, _bumpVault] = web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("vault"),
-        poolData.tokenMintA.toBuffer(),
-        poolData.tokenMintB.toBuffer(),
-      ],
-      this.program.programId
-    );
-
-    const [vaultLpTokenMintPubkey, _bumpLp] =
-      web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("mint"), vaultAccount.toBuffer()],
-        this.program.programId
-      );
-
-    const [vaultInputTokenAAccount, vaultInputTokenBAccount] =
-      await Promise.all(
-        [poolData.tokenMintA, poolData.tokenMintB].map(async (key) =>
-          getAssociatedTokenAddress(key, vaultAccount, true)
-        )
-      );
-
-    return {
-      vaultAccount,
-      vaultLpTokenMintPubkey,
-      vaultInputTokenAAccount,
-      vaultInputTokenBAccount,
-    };
-  }
-
-  async getWhirlpoolData(poolId: web3.PublicKey): Promise<wh.WhirlpoolData> {
-    const key = poolId.toString();
-    if (!this.cached.whirlpool[key]) {
-      const fetcher = new wh.AccountFetcher(this.connection);
-      const poolData = await fetcher.getPool(poolId);
-
-      if (!poolData) throw new Error("Cannot fetch pool " + key);
-      this.cached.whirlpool[key] = poolData;
-    }
-    return this.cached.whirlpool[key];
-  }
-
   async depositWithdrawAccounts(
     userSigner,
     poolId,
     position
   ): Promise<DepositWithdrawAccounts> {
-    const poolData = await this.getWhirlpoolData(poolId);
+    const poolData = await this.fetcher.getWhirlpoolData(poolId);
 
     const {
       vaultAccount,
       vaultLpTokenMintPubkey,
       vaultInputTokenAAccount,
       vaultInputTokenBAccount,
-    } = await this.getVaultKeys(poolId);
+    } = await this.fetcher.getVaultKeys(poolId);
 
     const [userLpTokenAccount, userTokenAAccount, userTokenBAccount] =
       await Promise.all(
