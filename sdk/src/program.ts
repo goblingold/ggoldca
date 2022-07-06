@@ -1,11 +1,20 @@
 import * as wh from "@orca-so/whirlpools-sdk";
-import { AnchorProvider, BN, Idl, Program, web3 } from "@project-serum/anchor";
+import {
+  AnchorProvider,
+  BN,
+  Idl,
+  Program,
+  utils,
+  web3,
+} from "@project-serum/anchor";
+import { MintLayout } from "@solana/spl-token";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token2";
+import { Decimal } from "decimal.js";
 import { Fetcher } from "./fetcher";
 import IDL from "./idl/ggoldca.json";
 
@@ -16,6 +25,14 @@ const DAO_TREASURY_PUBKEY = new web3.PublicKey(
 interface InitializeVaultParams {
   userSigner: web3.PublicKey;
   poolId: web3.PublicKey;
+}
+
+interface OpenPositionParams {
+  lowerPrice: Decimal;
+  upperPrice: Decimal;
+  userSigner: web3.PublicKey;
+  poolId: web3.PublicKey;
+  positionMint: web3.PublicKey;
 }
 
 interface DepositParams {
@@ -144,6 +161,73 @@ export class GGoldcaSDK {
     });
 
     return tx;
+  }
+
+  async openPositionIx(
+    params: OpenPositionParams
+  ): Promise<web3.TransactionInstruction> {
+    const { lowerPrice, upperPrice, userSigner, poolId, positionMint } = params;
+
+    const poolData = await this.fetcher.getWhirlpoolData(poolId);
+    const fetcher = new wh.AccountFetcher(this.connection);
+
+    const [tokenMintAInfo, tokenMintBInfo] =
+      await utils.rpc.getMultipleAccounts(this.connection, [
+        poolData.tokenMintA,
+        poolData.tokenMintB,
+      ]);
+
+    if (!tokenMintAInfo) {
+      throw new Error("Cannot fetch" + poolData.tokenMintA.toString());
+    }
+    if (!tokenMintBInfo) {
+      throw new Error("Cannot fetch" + poolData.tokenMintB.toString());
+    }
+
+    const mintA = MintLayout.decode(tokenMintAInfo.account.data);
+    const mintB = MintLayout.decode(tokenMintBInfo.account.data);
+
+    const tokenADecimal = mintA.decimals;
+    const tokenBDecimal = mintB.decimals;
+
+    const { vaultAccount } = await this.fetcher.getVaultKeys(poolId);
+
+    const tickLower = wh.TickUtil.getInitializableTickIndex(
+      wh.PriceMath.priceToTickIndex(lowerPrice, tokenADecimal, tokenBDecimal),
+      poolData.tickSpacing
+    );
+    const tickUpper = wh.TickUtil.getInitializableTickIndex(
+      wh.PriceMath.priceToTickIndex(upperPrice, tokenADecimal, tokenBDecimal),
+      poolData.tickSpacing
+    );
+
+    const positionPda = wh.PDAUtil.getPosition(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      positionMint
+    );
+
+    const positionTokenAccount = await getAssociatedTokenAddress(
+      positionMint,
+      vaultAccount,
+      true
+    );
+
+    return this.program.methods
+      .openPosition(positionPda.bump, tickLower, tickUpper)
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        position: positionPda.publicKey,
+        positionMint,
+        positionTokenAccount,
+        whirlpool: poolId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: web3.SystemProgram.programId,
+        rent: web3.SYSVAR_RENT_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      })
+      .instruction();
   }
 
   async depositIx(params: DepositParams): Promise<web3.TransactionInstruction> {
