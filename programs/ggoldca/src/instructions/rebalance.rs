@@ -39,8 +39,9 @@ pub struct Rebalance<'info> {
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
 
-    #[account(constraint = current_position.whirlpool.key == new_position.whirlpool.key)]
+    #[account(constraint = current_position.whirlpool.key() == vault_account.whirlpool_id.key())]
     pub current_position: PositionAccounts<'info>,
+    #[account(constraint = new_position.whirlpool.key() == vault_account.whirlpool_id.key())]
     pub new_position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,
