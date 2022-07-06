@@ -68,7 +68,7 @@ describe("ggoldca", () => {
   let positionAccounts2;
 
   it("Open position", async () => {
-    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const positionMintKeypair = anchor.web3.Keypair.generate();
     const positionPda = wh.PDAUtil.getPosition(
@@ -103,7 +103,7 @@ describe("ggoldca", () => {
   });
 
   it("Open position2", async () => {
-    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const positionMintKeypair = anchor.web3.Keypair.generate();
     const positionPda = wh.PDAUtil.getPosition(
@@ -266,7 +266,7 @@ describe("ggoldca", () => {
     const maxAmountA = new anchor.BN(1_000_000);
     const maxAmountB = new anchor.BN(1_000_000);
 
-    const { vaultLpTokenMintPubkey } = await ggClient.fetcher.getVaultKeys(
+    const { vaultLpTokenMintPubkey } = await ggClient.pdaAccounts.getVaultKeys(
       POOL_ID
     );
 
@@ -311,7 +311,7 @@ describe("ggoldca", () => {
       userSigner
     );
 
-    const { vaultInputTokenAAccount } = await ggClient.fetcher.getVaultKeys(
+    const { vaultInputTokenAAccount } = await ggClient.pdaAccounts.getVaultKeys(
       POOL_ID
     );
 
@@ -340,7 +340,7 @@ describe("ggoldca", () => {
 
   it("Collect fees & rewards", async () => {
     const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const rewardWhirlpoolVaults = poolData.rewardInfos
       .map((info) => info.vault)
@@ -392,7 +392,7 @@ describe("ggoldca", () => {
 
   it("Rebalance", async () => {
     const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.fetcher.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
       [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
@@ -401,7 +401,7 @@ describe("ggoldca", () => {
     );
 
     const { vaultInputTokenAAccount, vaultInputTokenBAccount } =
-      await ggClient.fetcher.getVaultKeys(POOL_ID);
+      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods

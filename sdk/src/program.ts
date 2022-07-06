@@ -17,6 +17,7 @@ import {
 import { Decimal } from "decimal.js";
 import { Fetcher } from "./fetcher";
 import IDL from "./idl/ggoldca.json";
+import { PDAAccounts } from "./pda";
 
 const DAO_TREASURY_PUBKEY = new web3.PublicKey(
   "8XhNoDjjNoLP5Rys1pBJKGdE8acEC1HJsWGkfkMt6JP1"
@@ -86,12 +87,14 @@ export class GGoldcaSDK {
   program;
   fetcher: Fetcher;
   connection: web3.Connection;
+  pdaAccounts: PDAAccounts;
 
   public constructor(params: ConstructorParams) {
     const { programId, connection } = params;
 
     this.connection = connection;
-    this.fetcher = new Fetcher(connection, programId);
+    this.fetcher = new Fetcher(connection);
+    this.pdaAccounts = new PDAAccounts(this.fetcher, programId);
     this.program = new Program(
       IDL as Idl,
       programId,
@@ -108,7 +111,7 @@ export class GGoldcaSDK {
       vaultLpTokenMintPubkey,
       vaultInputTokenAAccount,
       vaultInputTokenBAccount,
-    } = await this.fetcher.getVaultKeys(poolId);
+    } = await this.pdaAccounts.getVaultKeys(poolId);
 
     const poolData = await this.fetcher.getWhirlpoolData(poolId);
 
@@ -190,7 +193,7 @@ export class GGoldcaSDK {
     const tokenADecimal = mintA.decimals;
     const tokenBDecimal = mintB.decimals;
 
-    const { vaultAccount } = await this.fetcher.getVaultKeys(poolId);
+    const { vaultAccount } = await this.pdaAccounts.getVaultKeys(poolId);
 
     const tickLower = wh.TickUtil.getInitializableTickIndex(
       wh.PriceMath.priceToTickIndex(lowerPrice, tokenADecimal, tokenBDecimal),
@@ -276,7 +279,7 @@ export class GGoldcaSDK {
       vaultLpTokenMintPubkey,
       vaultInputTokenAAccount,
       vaultInputTokenBAccount,
-    } = await this.fetcher.getVaultKeys(poolId);
+    } = await this.pdaAccounts.getVaultKeys(poolId);
 
     const [userLpTokenAccount, userTokenAAccount, userTokenBAccount] =
       await Promise.all(
