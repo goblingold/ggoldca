@@ -59,13 +59,7 @@ describe("ggoldca", () => {
   });
 
   let position;
-  let positionTokenAccount;
-
   let position2;
-  let position2TokenAccount;
-
-  let positionAccounts;
-  let positionAccounts2;
 
   it("Open position", async () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
@@ -75,6 +69,7 @@ describe("ggoldca", () => {
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       positionMintKeypair.publicKey
     );
+
     const positionTokenAccountAddress = await getAssociatedTokenAddress(
       positionMintKeypair.publicKey,
       vaultAccount,
@@ -82,17 +77,14 @@ describe("ggoldca", () => {
     );
 
     position = positionPda.publicKey;
-    positionTokenAccount = positionTokenAccountAddress;
 
-    const tx = new anchor.web3.Transaction().add(
-      await ggClient.openPositionIx({
-        lowerPrice: new Decimal(0.9),
-        upperPrice: new Decimal(1.1),
-        userSigner,
-        poolId: POOL_ID,
-        positionMint: positionMintKeypair.publicKey,
-      })
-    );
+    const tx = await ggClient.openPositionTx({
+      lowerPrice: new Decimal(0.9),
+      upperPrice: new Decimal(1.1),
+      userSigner,
+      poolId: POOL_ID,
+      positionMint: positionMintKeypair.publicKey,
+    });
 
     const txSig = await program.provider.sendAndConfirm(
       tx,
@@ -110,6 +102,7 @@ describe("ggoldca", () => {
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       positionMintKeypair.publicKey
     );
+
     const positionTokenAccountAddress = await getAssociatedTokenAddress(
       positionMintKeypair.publicKey,
       vaultAccount,
@@ -117,17 +110,14 @@ describe("ggoldca", () => {
     );
 
     position2 = positionPda.publicKey;
-    position2TokenAccount = positionTokenAccountAddress;
 
-    const tx = new anchor.web3.Transaction().add(
-      await ggClient.openPositionIx({
-        lowerPrice: new Decimal(0.95),
-        upperPrice: new Decimal(1.05),
-        userSigner,
-        poolId: POOL_ID,
-        positionMint: positionMintKeypair.publicKey,
-      })
-    );
+    const tx = await ggClient.openPositionTx({
+      lowerPrice: new Decimal(0.95),
+      upperPrice: new Decimal(1.05),
+      userSigner,
+      poolId: POOL_ID,
+      positionMint: positionMintKeypair.publicKey,
+    });
 
     const txSig = await program.provider.sendAndConfirm(
       tx,
@@ -135,130 +125,6 @@ describe("ggoldca", () => {
       CONFIRM_OPTS
     );
     console.log("open_position_2", txSig);
-  });
-
-  it("Init tick arrays", async () => {
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const positionData = await whFetcher.getPosition(position);
-
-    const startTickLower = wh.TickUtil.getStartTickIndex(
-      positionData.tickLowerIndex,
-      poolData.tickSpacing
-    );
-
-    const startTickUpper = wh.TickUtil.getStartTickIndex(
-      positionData.tickUpperIndex,
-      poolData.tickSpacing
-    );
-
-    const tickArrayLowerPda = wh.PDAUtil.getTickArray(
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      POOL_ID,
-      startTickLower
-    );
-
-    const tickArrayUpperPda = wh.PDAUtil.getTickArray(
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      POOL_ID,
-      startTickUpper
-    );
-
-    const initTickLowerIx = wh.WhirlpoolIx.initTickArrayIx(
-      whClient.ctx.program,
-      {
-        startTick: startTickLower,
-        tickArrayPda: tickArrayLowerPda,
-        whirlpool: POOL_ID,
-        funder: userSigner,
-      }
-    );
-
-    const initTickUpperIx = wh.WhirlpoolIx.initTickArrayIx(
-      whClient.ctx.program,
-      {
-        startTick: startTickUpper,
-        tickArrayPda: tickArrayUpperPda,
-        whirlpool: POOL_ID,
-        funder: userSigner,
-      }
-    );
-
-    positionAccounts = {
-      whirlpool: POOL_ID,
-      position,
-      positionTokenAccount,
-      tickArrayLower: tickArrayLowerPda.publicKey,
-      tickArrayUpper: tickArrayUpperPda.publicKey,
-    };
-
-    const tx = new anchor.web3.Transaction()
-      .add(initTickLowerIx)
-      .add(initTickUpperIx);
-
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("init_tick_arrays", txSig);
-  });
-
-  it("Init tick arrays 2", async () => {
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const positionData = await whFetcher.getPosition(position2);
-
-    const startTickLower = wh.TickUtil.getStartTickIndex(
-      positionData.tickLowerIndex,
-      poolData.tickSpacing
-    );
-
-    const startTickUpper = wh.TickUtil.getStartTickIndex(
-      positionData.tickUpperIndex,
-      poolData.tickSpacing
-    );
-
-    const tickArrayLowerPda = wh.PDAUtil.getTickArray(
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      POOL_ID,
-      startTickLower
-    );
-
-    const tickArrayUpperPda = wh.PDAUtil.getTickArray(
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      POOL_ID,
-      startTickUpper
-    );
-
-    const initTickLowerIx = wh.WhirlpoolIx.initTickArrayIx(
-      whClient.ctx.program,
-      {
-        startTick: startTickLower,
-        tickArrayPda: tickArrayLowerPda,
-        whirlpool: POOL_ID,
-        funder: userSigner,
-      }
-    );
-
-    const initTickUpperIx = wh.WhirlpoolIx.initTickArrayIx(
-      whClient.ctx.program,
-      {
-        startTick: startTickUpper,
-        tickArrayPda: tickArrayUpperPda,
-        whirlpool: POOL_ID,
-        funder: userSigner,
-      }
-    );
-
-    positionAccounts2 = {
-      whirlpool: POOL_ID,
-      position: position2,
-      positionTokenAccount: position2TokenAccount,
-      tickArrayLower: tickArrayLowerPda.publicKey,
-      tickArrayUpper: tickArrayUpperPda.publicKey,
-    };
-
-    const tx = new anchor.web3.Transaction()
-      .add(initTickLowerIx)
-      .add(initTickUpperIx);
-
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("init_tick_arrays_2", txSig);
   });
 
   it("Deposit", async () => {
@@ -291,7 +157,7 @@ describe("ggoldca", () => {
           maxAmountB,
           userSigner,
           poolId: POOL_ID,
-          position: positionAccounts,
+          position: position,
         })
       );
 
@@ -330,7 +196,7 @@ describe("ggoldca", () => {
         maxAmountB,
         userSigner,
         poolId: POOL_ID,
-        position: positionAccounts,
+        position,
       })
     );
 
@@ -371,6 +237,8 @@ describe("ggoldca", () => {
         })
     );
 
+    const positionAccounts = await ggClient.getPositionAccounts(position);
+
     const tx = await program.methods
       .collectFeesAndRewards()
       .accounts({
@@ -403,6 +271,10 @@ describe("ggoldca", () => {
     const { vaultInputTokenAAccount, vaultInputTokenBAccount } =
       await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
+    const [currentPosition, newPosition] = await Promise.all(
+      [position, position2].map((key) => ggClient.getPositionAccounts(key))
+    );
+
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
       await program.methods
         .rebalance()
@@ -414,8 +286,8 @@ describe("ggoldca", () => {
           vaultInputTokenBAccount,
           tokenVaultA: poolData.tokenVaultA,
           tokenVaultB: poolData.tokenVaultB,
-          currentPosition: positionAccounts,
-          newPosition: positionAccounts2,
+          currentPosition,
+          newPosition,
         })
         .transaction()
     );
@@ -436,7 +308,7 @@ describe("ggoldca", () => {
         minAmountB,
         userSigner,
         poolId: POOL_ID,
-        position: positionAccounts2,
+        position: position2,
       })
     );
 
