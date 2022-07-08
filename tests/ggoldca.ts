@@ -179,53 +179,23 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  it("Collect fees & rewards", async () => {
-    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
-      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
-
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const rewardWhirlpoolVaults = poolData.rewardInfos
-      .map((info) => info.vault)
-      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
-
-    const rewardMints = poolData.rewardInfos
-      .map((info) => info.mint)
-      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
-
-    const rewardAccounts = await Promise.all(
-      rewardMints.map(async (key) =>
-        getAssociatedTokenAddress(key, vaultAccount, true)
-      )
-    );
-
-    const remainingAccounts = [...rewardAccounts, ...rewardWhirlpoolVaults].map(
-      (pubkey) =>
-        (anchor.web3.AccountMeta = {
-          isSigner: false,
-          isWritable: true,
-          pubkey,
-        })
-    );
-
-    const positionAccounts = await ggClient.getPositionAccounts(position);
-
-    const tx = await program.methods
-      .collectFeesAndRewards()
-      .accounts({
-        userSigner,
-        vaultAccount,
-        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        vaultInputTokenAAccount,
-        vaultInputTokenBAccount,
-        tokenVaultA: poolData.tokenVaultA,
-        tokenVaultB: poolData.tokenVaultB,
-        position: positionAccounts,
-      })
-      .remainingAccounts(remainingAccounts)
-      .transaction();
+  it("Collect fees", async () => {
+    const ix = await ggClient.collectFeesIx({ userSigner, position });
+    const tx = new anchor.web3.Transaction().add(ix);
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("collect_fees_and_rewards", txSig);
+    console.log("collect_fees", txSig);
+  });
+
+  it("Collect rewards", async () => {
+    const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
+    const tx = ixs.reduce(
+      (tx, ix) => tx.add(ix),
+      new anchor.web3.Transaction()
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("collect_rewards", txSig);
   });
 
   it("Rebalance", async () => {
