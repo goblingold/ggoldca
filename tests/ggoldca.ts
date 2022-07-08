@@ -205,7 +205,9 @@ describe("ggoldca", () => {
       await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const [currentPosition, newPosition] = await Promise.all(
-      [position, position2].map((key) => ggClient.getPositionAccounts(key))
+      [position, position2].map((key) =>
+        ggClient.pdaAccounts.getPositionAccounts(key)
+      )
     );
 
     const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
