@@ -55,7 +55,7 @@ impl VaultAccount {
 
     /// Return the current active position pubkey
     pub fn active_position_key(&self) -> Pubkey {
-        return self.positions[0].pubkey;
+        self.positions[0].pubkey
     }
 
     /// Update the current active position
