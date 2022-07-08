@@ -180,9 +180,10 @@ describe("ggoldca", () => {
   });
 
   it("Collect fees & rewards", async () => {
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
+      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
     const rewardWhirlpoolVaults = poolData.rewardInfos
       .map((info) => info.vault)
       .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
@@ -194,12 +195,6 @@ describe("ggoldca", () => {
     const rewardAccounts = await Promise.all(
       rewardMints.map(async (key) =>
         getAssociatedTokenAddress(key, vaultAccount, true)
-      )
-    );
-
-    const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
-      [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
-        getAssociatedTokenAddress(key, userSigner)
       )
     );
 
@@ -220,8 +215,8 @@ describe("ggoldca", () => {
         userSigner,
         vaultAccount,
         whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-        tokenOwnerAccountA,
-        tokenOwnerAccountB,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
         tokenVaultA: poolData.tokenVaultA,
         tokenVaultB: poolData.tokenVaultB,
         position: positionAccounts,
@@ -235,15 +230,8 @@ describe("ggoldca", () => {
 
   it("Rebalance", async () => {
     const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
-    const [tokenOwnerAccountA, tokenOwnerAccountB] = await Promise.all(
-      [poolData.tokenMintA, poolData.tokenMintB].map((key) =>
-        getAssociatedTokenAddress(key, userSigner)
-      )
-    );
-
-    const { vaultInputTokenAAccount, vaultInputTokenBAccount } =
+    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
       await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
 
     const [currentPosition, newPosition] = await Promise.all(

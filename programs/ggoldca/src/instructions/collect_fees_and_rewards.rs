@@ -25,10 +25,18 @@ pub struct CollectFeesAndRewards<'info> {
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
 
-    #[account(mut)]
-    pub token_owner_account_a: Account<'info, TokenAccount>,
-    #[account(mut)]
-    pub token_owner_account_b: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = vault_account.input_token_a_mint_pubkey,
+        associated_token::authority = vault_account,
+    )]
+    pub vault_input_token_a_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
+        associated_token::mint = vault_account.input_token_b_mint_pubkey,
+        associated_token::authority = vault_account,
+    )]
+    pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     /// CHECK: whirlpool cpi
@@ -69,8 +77,8 @@ impl<'info> CollectFeesAndRewards<'info> {
                 position_authority: self.vault_account.to_account_info(),
                 position: self.position.position.to_account_info(),
                 position_token_account: self.position.position_token_account.to_account_info(),
-                token_owner_account_a: self.token_owner_account_a.to_account_info(),
-                token_owner_account_b: self.token_owner_account_b.to_account_info(),
+                token_owner_account_a: self.vault_input_token_a_account.to_account_info(),
+                token_owner_account_b: self.vault_input_token_b_account.to_account_info(),
                 token_vault_a: self.token_vault_a.to_account_info(),
                 token_vault_b: self.token_vault_b.to_account_info(),
                 token_program: self.token_program.to_account_info(),
