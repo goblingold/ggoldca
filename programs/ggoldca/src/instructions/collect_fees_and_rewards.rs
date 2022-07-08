@@ -37,7 +37,10 @@ pub struct CollectFeesAndRewards<'info> {
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
 
-    #[account(constraint = position.whirlpool.key() == vault_account.whirlpool_id.key())]
+    #[account(
+        constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
+        constraint = position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
+    )]
     pub position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,

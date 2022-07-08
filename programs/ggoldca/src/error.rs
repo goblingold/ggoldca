@@ -27,4 +27,6 @@ pub enum ErrorCode {
     PositionAlreadyOpened,
     #[msg("Position limit reached")]
     PositionLimitReached,
+    #[msg("Position does not exist or is not active")]
+    PositionNotActive,
 }

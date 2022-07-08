@@ -47,6 +47,27 @@ impl VaultAccount {
             .iter()
             .any(|pos| pos.lower_tick == tick_lower_index && pos.upper_tick == tick_upper_index);
     }
+
+    /// Check if the given pubkey is a valid position
+    pub fn position_address_exists(&self, key: Pubkey) -> bool {
+        return self.positions.iter().any(|pos| pos.pubkey == key);
+    }
+
+    /// Return the current active position pubkey
+    pub fn active_position_key(&self) -> Pubkey {
+        return self.positions[0].pubkey;
+    }
+
+    /// Update the current active position
+    pub fn update_active_position(&mut self, key: Pubkey) {
+        let new_position_indx = self
+            .positions
+            .iter()
+            .position(|p| p.pubkey == key)
+            // this cannot fail, existence of positions checked in constraints
+            .unwrap();
+        self.positions.swap(0, new_position_indx)
+    }
 }
 
 /// Initialize a new vault

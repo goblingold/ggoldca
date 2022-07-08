@@ -56,7 +56,11 @@ pub struct DepositWithdraw<'info> {
     #[account(address = whirlpool::ID)]
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
-    #[account(constraint = position.whirlpool.key() == vault_account.whirlpool_id.key())]
+    #[account(
+        //TODO first constraint redundant?
+        constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
+        constraint = position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
+    )]
     pub position: PositionAccounts<'info>,
     #[account(mut)]
     /// CHECK: whirlpool cpi

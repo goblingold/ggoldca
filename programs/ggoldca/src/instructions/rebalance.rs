@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
 use crate::state::VaultAccount;
@@ -11,6 +12,7 @@ use anchor_spl::token::{Token, TokenAccount};
 pub struct Rebalance<'info> {
     pub user_signer: Signer<'info>,
     #[account(
+        mut,
         seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
@@ -39,9 +41,15 @@ pub struct Rebalance<'info> {
     /// CHECK: whirlpool cpi
     pub token_vault_b: AccountInfo<'info>,
 
-    #[account(constraint = current_position.whirlpool.key() == vault_account.whirlpool_id.key())]
+    #[account(
+        constraint = current_position.whirlpool.key() == vault_account.whirlpool_id.key(),
+        constraint = current_position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
+    )]
     pub current_position: PositionAccounts<'info>,
-    #[account(constraint = new_position.whirlpool.key() == vault_account.whirlpool_id.key())]
+    #[account(
+        constraint = new_position.whirlpool.key() == vault_account.whirlpool_id.key(),
+        constraint = vault_account.position_address_exists(new_position.position.key()) @ ErrorCode::PositionNotActive
+    )]
     pub new_position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,
@@ -118,6 +126,12 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     msg!("2.L {}", ctx.accounts.new_position.liquidity()?);
     msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
+
+    msg!("{:?}", ctx.accounts.vault_account.positions);
+    ctx.accounts
+        .vault_account
+        .update_active_position(ctx.accounts.new_position.position.key());
+    msg!("{:?}", ctx.accounts.vault_account.positions);
 
     Ok(())
 }
