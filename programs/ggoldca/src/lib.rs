@@ -54,14 +54,11 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, lp_amount, min_amount_a, min_amount_b)
     }
 
-    pub fn collect_fees<'info>(ctx: Context<'_, '_, '_, 'info, CollectFees<'info>>) -> Result<()> {
+    pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
         instructions::collect_fees::handler(ctx)
     }
 
-    pub fn collect_rewards<'info>(
-        ctx: Context<'_, '_, '_, 'info, CollectRewards<'info>>,
-        reward_index: u8,
-    ) -> Result<()> {
+    pub fn collect_rewards(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
         instructions::collect_rewards::handler(ctx, reward_index)
     }
 

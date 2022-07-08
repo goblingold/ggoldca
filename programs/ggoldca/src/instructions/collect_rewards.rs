@@ -7,7 +7,6 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
-
 use whirlpool::cpi::accounts::{CollectReward, UpdateFeesAndRewards};
 
 #[derive(Accounts)]
@@ -76,10 +75,7 @@ impl<'info> CollectRewards<'info> {
     }
 }
 
-pub fn handler<'info>(
-    ctx: Context<'_, '_, '_, 'info, CollectRewards<'info>>,
-    reward_index: u8,
-) -> Result<()> {
+pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
