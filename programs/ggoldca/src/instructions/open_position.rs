@@ -1,4 +1,5 @@
-use crate::state::VaultAccount;
+use crate::error::ErrorCode;
+use crate::state::{PositionInfo, VaultAccount, MAX_POSITIONS};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
@@ -11,6 +12,7 @@ pub struct OpenPosition<'info> {
     #[account(mut)]
     pub user_signer: Signer<'info>,
     #[account(
+        mut,
         seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
@@ -74,6 +76,24 @@ pub fn handler(
         tick_lower_index,
         tick_upper_index,
     )?;
+
+    let vault = &mut ctx.accounts.vault_account;
+
+    require!(
+        !vault.position_exists(tick_lower_index, tick_upper_index),
+        ErrorCode::PositionAlreadyOpened
+    );
+
+    require!(
+        vault.positions.len() < MAX_POSITIONS,
+        ErrorCode::PositionLimitReached
+    );
+
+    vault.positions.push(PositionInfo {
+        pubkey: ctx.accounts.position.key(),
+        lower_tick: tick_lower_index,
+        upper_tick: tick_upper_index,
+    });
 
     Ok(())
 }

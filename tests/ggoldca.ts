@@ -40,15 +40,6 @@ describe("ggoldca", () => {
     programId: program.programId,
   });
 
-  const whFetcher = new wh.AccountFetcher(program.provider.connection);
-  const whClient = wh.buildWhirlpoolClient(
-    wh.WhirlpoolContext.withProvider(
-      program.provider,
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID
-    ),
-    whFetcher
-  );
-
   it("Initialize vault", async () => {
     const tx = await ggClient.initializeVaultTx({
       userSigner,
@@ -62,18 +53,10 @@ describe("ggoldca", () => {
   let position2;
 
   it("Open position", async () => {
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
-
     const positionMintKeypair = anchor.web3.Keypair.generate();
     const positionPda = wh.PDAUtil.getPosition(
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       positionMintKeypair.publicKey
-    );
-
-    const positionTokenAccountAddress = await getAssociatedTokenAddress(
-      positionMintKeypair.publicKey,
-      vaultAccount,
-      true
     );
 
     position = positionPda.publicKey;
@@ -95,18 +78,10 @@ describe("ggoldca", () => {
   });
 
   it("Open position2", async () => {
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
-
     const positionMintKeypair = anchor.web3.Keypair.generate();
     const positionPda = wh.PDAUtil.getPosition(
       wh.ORCA_WHIRLPOOL_PROGRAM_ID,
       positionMintKeypair.publicKey
-    );
-
-    const positionTokenAccountAddress = await getAssociatedTokenAddress(
-      positionMintKeypair.publicKey,
-      vaultAccount,
-      true
     );
 
     position2 = positionPda.publicKey;
@@ -316,7 +291,9 @@ describe("ggoldca", () => {
     console.log("withdraw", txSig);
   });
 
-  it("Wait some time so validator logs are written", async () => {
-    return new Promise((resolve) => setTimeout(resolve, 100));
+  it("vault_account", async () => {
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const data = await program.account.vaultAccount.fetch(vaultAccount);
+    console.log(JSON.stringify(data, null, 4));
   });
 });

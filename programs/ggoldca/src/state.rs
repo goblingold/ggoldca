@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
 
+/// Number of simultaneous positions allowed
+pub const MAX_POSITIONS: usize = 2;
+
 /// Strategy vault account
 #[account]
 #[derive(Default, Debug)]
@@ -9,17 +12,21 @@ pub struct VaultAccount {
 
     /// Whirlpool pubkey
     pub whirlpool_id: Pubkey,
-
     /// Pool input token_a mint address
     pub input_token_a_mint_pubkey: Pubkey,
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
+
     /// Destination fee account
     pub dao_treasury_lp_token_account: Pubkey,
+
+    /// Information about the opened positions (max = MAX_POSITIONS)
+    pub positions: Vec<PositionInfo>,
 }
 
 impl VaultAccount {
-    pub const SIZE: usize = Bumps::SIZE + 32 + 32 + 32 + 32;
+    pub const SIZE: usize =
+        Bumps::SIZE + 32 + 32 + 32 + 32 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
@@ -29,7 +36,16 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             dao_treasury_lp_token_account: params.dao_treasury_lp_token_account,
+            ..Self::default()
         }
+    }
+
+    /// Check the existence of a position
+    pub fn position_exists(&self, tick_lower_index: i32, tick_upper_index: i32) -> bool {
+        return self
+            .positions
+            .iter()
+            .any(|pos| pos.lower_tick == tick_lower_index && pos.upper_tick == tick_upper_index);
     }
 }
 
@@ -58,4 +74,19 @@ pub struct Bumps {
 
 impl Bumps {
     pub const SIZE: usize = 1 + 1;
+}
+
+/// Position information
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
+pub struct PositionInfo {
+    /// Position pubkey
+    pub pubkey: Pubkey,
+    /// Position lower tick
+    pub lower_tick: i32,
+    /// Position upper tick
+    pub upper_tick: i32,
+}
+
+impl PositionInfo {
+    pub const SIZE: usize = 32 + 4 + 4;
 }

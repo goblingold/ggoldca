@@ -22,4 +22,9 @@ pub enum ErrorCode {
 
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
+
+    #[msg("Position already opened")]
+    PositionAlreadyOpened,
+    #[msg("Position limit reached")]
+    PositionLimitReached,
 }
