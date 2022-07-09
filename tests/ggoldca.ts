@@ -132,7 +132,6 @@ describe("ggoldca", () => {
           maxAmountB,
           userSigner,
           poolId: POOL_ID,
-          position: position,
         })
       );
 
@@ -171,7 +170,6 @@ describe("ggoldca", () => {
         maxAmountB,
         userSigner,
         poolId: POOL_ID,
-        position,
       })
     );
 
@@ -243,7 +241,6 @@ describe("ggoldca", () => {
         minAmountB,
         userSigner,
         poolId: POOL_ID,
-        position: position2,
       })
     );
 
