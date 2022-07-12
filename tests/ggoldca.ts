@@ -196,6 +196,80 @@ describe("ggoldca", () => {
     console.log("collect_rewards", txSig);
   });
 
+  it("Reinvest", async () => {
+    const [
+      poolData,
+      positionAccounts,
+      { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
+    ] = await Promise.all([
+      ggClient.fetcher.getWhirlpoolData(POOL_ID),
+      ggClient.pdaAccounts.getPositionAccounts(position),
+      ggClient.pdaAccounts.getVaultKeys(POOL_ID),
+    ]);
+
+    const oracleKeypair = wh.PDAUtil.getOracle(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID
+    );
+
+    const tickArrayAddresses = wh.PoolUtil.getTickArrayPublicKeysForSwap(
+      poolData.tickCurrentIndex,
+      poolData.tickSpacing,
+      true,
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      positionAccounts.whirlpool
+    );
+
+    // transfer some lamports to simulate the collected rewards
+    const [userTokenAAccount, userTokenBAccount] = await Promise.all([
+      getAssociatedTokenAddress(poolData.tokenMintA, userSigner),
+      getAssociatedTokenAddress(poolData.tokenMintB, userSigner),
+    ]);
+
+    const transferAIx = createTransferInstruction(
+      userTokenAAccount,
+      vaultInputTokenAAccount,
+      userSigner,
+      1_000,
+      []
+    );
+
+    const transferBIx = createTransferInstruction(
+      userTokenBAccount,
+      vaultInputTokenBAccount,
+      userSigner,
+      10_500,
+      []
+    );
+
+    const tx = new anchor.web3.Transaction()
+      .add(COMPUTE_BUDGET_IX)
+      .add(transferAIx)
+      .add(transferBIx)
+      .add(
+        await program.methods
+          .reinvest()
+          .accounts({
+            userSigner,
+            vaultAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            vaultInputTokenAAccount,
+            vaultInputTokenBAccount,
+            tokenVaultA: poolData.tokenVaultA,
+            tokenVaultB: poolData.tokenVaultB,
+            position: positionAccounts,
+            tickArray0: tickArrayAddresses[0],
+            tickArray1: tickArrayAddresses[1],
+            tickArray2: tickArrayAddresses[2],
+            oracle: oracleKeypair.publicKey,
+          })
+          .transaction()
+      );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("Reinvest", txSig);
+  });
+
   it("Rebalance", async () => {
     const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
 
@@ -252,5 +326,6 @@ describe("ggoldca", () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
     console.log(JSON.stringify(data, null, 4));
+    return new Promise((resolve) => setTimeout(resolve, 100));
   });
 });

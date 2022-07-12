@@ -62,6 +62,10 @@ pub mod ggoldca {
         instructions::collect_rewards::handler(ctx, reward_index)
     }
 
+    pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
+        instructions::reinvest::handler(ctx)
+    }
+
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
     }
