@@ -109,19 +109,19 @@ impl<'info> DepositWithdraw<'info> {
         )
     }
 
-    fn delegate_user_token_a_to_vault_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+    fn delegate_user_to_vault_a_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
         self._delegate_user_to_vault_ctx(&self.user_token_a_account)
     }
 
-    fn delegate_user_token_b_to_vault_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
+    fn delegate_user_to_vault_b_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Approve<'info>> {
         self._delegate_user_to_vault_ctx(&self.user_token_b_account)
     }
 
-    fn revoke_vault_from_user_token_a_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+    fn revoke_vault_a_from_user_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
         self._revoke_vault_from_user_ctx(&self.user_token_a_account)
     }
 
-    fn revoke_vault_from_user_token_b_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
+    fn revoke_vault_b_from_user_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Revoke<'info>> {
         self._revoke_vault_from_user_ctx(&self.user_token_b_account)
     }
 
@@ -233,65 +233,59 @@ pub fn handler(
     mut max_amount_a: u64,
     mut max_amount_b: u64,
 ) -> Result<()> {
-    let user_a = ctx.accounts.user_token_a_account.amount;
-    let user_b = ctx.accounts.user_token_b_account.amount;
+    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
+    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
+    msg!("0.L {}", ctx.accounts.position.liquidity()?);
 
     let supply = ctx.accounts.vault_lp_token_mint_pubkey.supply;
 
-    let liquidity = if supply > 0 {
+    let user_liquidity = if supply > 0 {
+        ctx.accounts
+            .position
+            .liquidity()?
+            .safe_mul_div_round_up(u128::from(lp_amount), u128::from(supply))?
+    } else {
+        u128::from(lp_amount)
+    };
+
+    if supply > 0 {
         let vault_amount_a = ctx.accounts.vault_input_token_a_account.amount;
         let vault_amount_b = ctx.accounts.vault_input_token_b_account.amount;
 
         if vault_amount_a > 0 {
             let amount_a = vault_amount_a.safe_mul_div_round_up(lp_amount, supply)?;
+
+            require!(amount_a <= max_amount_a, ErrorCode::ExceededTokenMax);
+            max_amount_a = max_amount_a.safe_sub(amount_a)?;
+
             token::transfer(
                 ctx.accounts.transfer_token_a_from_user_to_vault_ctx(),
                 amount_a,
             )?;
-
-            require!(amount_a < max_amount_a, ErrorCode::ExceededTokenMax);
-            max_amount_a = max_amount_a.safe_sub(amount_a)?;
         }
 
         if vault_amount_b > 0 {
             let amount_b = vault_amount_b.safe_mul_div_round_up(lp_amount, supply)?;
+
+            require!(amount_b <= max_amount_b, ErrorCode::ExceededTokenMax);
+            max_amount_b = max_amount_b.safe_sub(amount_b)?;
+
             token::transfer(
                 ctx.accounts.transfer_token_b_from_user_to_vault_ctx(),
                 amount_b,
             )?;
-
-            require!(amount_b < max_amount_b, ErrorCode::ExceededTokenMax);
-            max_amount_b = max_amount_b.safe_sub(amount_b)?;
         }
+    }
 
-        let current_liquidity = ctx.accounts.position.liquidity()?;
-        current_liquidity.safe_mul_div_round_up(u128::from(lp_amount), u128::from(supply))?
-    } else {
-        u128::from(lp_amount)
-    };
-
-    token::approve(
-        ctx.accounts.delegate_user_token_a_to_vault_ctx(),
-        max_amount_a,
-    )?;
-    token::approve(
-        ctx.accounts.delegate_user_token_b_to_vault_ctx(),
-        max_amount_b,
-    )?;
-
-    msg!(
-        "C {:?}",
-        ctx.accounts
-            .position
-            .token_amounts_from_liquidity_round_up(u128::from(lp_amount))?
-    );
+    token::approve(ctx.accounts.delegate_user_to_vault_a_ctx(), max_amount_a)?;
+    token::approve(ctx.accounts.delegate_user_to_vault_b_ctx(), max_amount_b)?;
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
     whirlpool::cpi::increase_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),
-        liquidity,
+        user_liquidity,
         max_amount_a,
         max_amount_b,
     )?;
@@ -301,15 +295,21 @@ pub fn handler(
         lp_amount,
     )?;
 
+    token::revoke(ctx.accounts.revoke_vault_a_from_user_ctx())?;
+    token::revoke(ctx.accounts.revoke_vault_b_from_user_ctx())?;
+
+    ctx.accounts.vault_input_token_a_account.reload()?;
+    ctx.accounts.vault_input_token_b_account.reload()?;
+    msg!("1.A {}", ctx.accounts.vault_input_token_a_account.amount);
+    msg!("1.B {}", ctx.accounts.vault_input_token_b_account.amount);
+    msg!("1.L {}", ctx.accounts.position.liquidity()?);
+
+    let user_a = ctx.accounts.user_token_a_account.amount;
+    let user_b = ctx.accounts.user_token_b_account.amount;
     ctx.accounts.user_token_a_account.reload()?;
     ctx.accounts.user_token_b_account.reload()?;
-    let liquidity_after = ctx.accounts.position.liquidity()?;
-    msg!("A {}", user_a - ctx.accounts.user_token_a_account.amount);
-    msg!("B {}", user_b - ctx.accounts.user_token_b_account.amount);
-    msg!("L {}", liquidity_after);
-
-    token::revoke(ctx.accounts.revoke_vault_from_user_token_a_ctx())?;
-    token::revoke(ctx.accounts.revoke_vault_from_user_token_b_ctx())?;
+    msg!("U.A {}", user_a - ctx.accounts.user_token_a_account.amount);
+    msg!("U.B {}", user_b - ctx.accounts.user_token_b_account.amount);
 
     Ok(())
 }
