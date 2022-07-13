@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
+use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -13,6 +14,7 @@ use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 pub struct Reinvest<'info> {
     pub user_signer: Signer<'info>,
     #[account(
+        mut,
         seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
@@ -136,6 +138,14 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
     msg!("0.L {}", ctx.accounts.position.liquidity()?);
+    msg!(
+        "0.dL {}",
+        ctx.accounts.vault_account.last_liquidity_increase
+    );
+
+    let amount_a_before = ctx.accounts.vault_input_token_a_account.amount;
+    let amount_b_before = ctx.accounts.vault_input_token_b_account.amount;
+    let liquidity_before = ctx.accounts.position.liquidity()?;
 
     // First try to deposit the max available amounts
     ctx.accounts.deposit_max_possible_liquidity_cpi(signer)?;
@@ -177,9 +187,26 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
 
     ctx.accounts.vault_input_token_a_account.reload()?;
     ctx.accounts.vault_input_token_b_account.reload()?;
+
+    let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
+    let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
+    let liquidity_after = ctx.accounts.position.liquidity()?;
+
+    let amount_a_diff = amount_a_before.safe_sub(amount_a_after)?;
+    let amount_b_diff = amount_b_before.safe_sub(amount_b_after)?;
+    let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
+
+    let vault = &mut ctx.accounts.vault_account;
+    vault.last_liquidity_increase = liquidity_increase;
+    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.saturating_sub(amount_a_diff);
+    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.saturating_sub(amount_b_diff);
+
     msg!("3.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("3.B {}", ctx.accounts.vault_input_token_b_account.amount);
     msg!("3.L {}", ctx.accounts.position.liquidity()?);
-
+    msg!(
+        "3.dL {}",
+        ctx.accounts.vault_account.last_liquidity_increase
+    );
     Ok(())
 }

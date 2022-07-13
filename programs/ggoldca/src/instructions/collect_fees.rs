@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
+use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -13,6 +14,7 @@ use whirlpool::cpi::accounts::{CollectFees as WhCollectFees, UpdateFeesAndReward
 pub struct CollectFees<'info> {
     pub user_signer: Signer<'info>,
     #[account(
+        mut,
         seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
@@ -88,8 +90,24 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
+    let amount_a_before = ctx.accounts.vault_input_token_a_account.amount;
+    let amount_b_before = ctx.accounts.vault_input_token_b_account.amount;
+
     whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
     whirlpool::cpi::collect_fees(ctx.accounts.collect_fees_ctx().with_signer(signer))?;
+
+    ctx.accounts.vault_input_token_a_account.reload()?;
+    ctx.accounts.vault_input_token_b_account.reload()?;
+
+    let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
+    let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
+
+    let amount_a_diff = amount_a_after.safe_sub(amount_a_before)?;
+    let amount_b_diff = amount_b_after.safe_sub(amount_b_before)?;
+
+    let vault = &mut ctx.accounts.vault_account;
+    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.safe_add(amount_a_diff)?;
+    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.safe_add(amount_b_diff)?;
 
     Ok(())
 }

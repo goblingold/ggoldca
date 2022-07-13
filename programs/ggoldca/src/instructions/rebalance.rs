@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
+use crate::math::safe_arithmetics::SafeMulDiv;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -84,17 +85,23 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    let liquidity = ctx.accounts.current_position.liquidity()?;
+    let init_amount_a = ctx.accounts.vault_input_token_a_account.amount;
+    let init_amount_b = ctx.accounts.vault_input_token_b_account.amount;
+    let init_liquidity = ctx.accounts.current_position.liquidity()?;
 
-    msg!("0.L {}", liquidity);
     msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
+    msg!("0.L {}", init_liquidity);
+    msg!(
+        "0.dL {}",
+        ctx.accounts.vault_account.last_liquidity_increase
+    );
 
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts
             .modify_liquidity_ctx(&ctx.accounts.current_position)
             .with_signer(signer),
-        liquidity,
+        init_liquidity,
         0,
         0,
     )?;
@@ -127,11 +134,39 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
 
-    msg!("{:?}", ctx.accounts.vault_account.positions);
-    ctx.accounts
-        .vault_account
-        .update_active_position(ctx.accounts.new_position.position.key());
-    msg!("{:?}", ctx.accounts.vault_account.positions);
+    let new_amount_a = ctx.accounts.vault_input_token_a_account.amount;
+    let new_amount_b = ctx.accounts.vault_input_token_b_account.amount;
+
+    let vault = &mut ctx.accounts.vault_account;
+
+    // If the amounts have decreased, part of the accumulated fees has been provided as liquidity
+    if new_amount_a < init_amount_a {
+        let proportional_non_invested_fees = vault
+            .acc_non_invested_fees_a
+            .safe_mul_div_round_up(new_amount_a, init_amount_a)?;
+
+        vault.acc_non_invested_fees_b = proportional_non_invested_fees;
+    }
+
+    if new_amount_b < init_amount_b {
+        let proportional_non_invested_fees = vault
+            .acc_non_invested_fees_b
+            .safe_mul_div_round_up(new_amount_a, init_amount_b)?;
+
+        vault.acc_non_invested_fees_b = proportional_non_invested_fees;
+    }
+
+    let proportional_liquidity_increase = vault
+        .last_liquidity_increase
+        .safe_mul_div_round_up(new_liquidity, init_liquidity)?;
+
+    vault.last_liquidity_increase = proportional_liquidity_increase;
+    vault.update_active_position(ctx.accounts.new_position.position.key());
+
+    msg!(
+        "1.dL {}",
+        ctx.accounts.vault_account.last_liquidity_increase
+    );
 
     Ok(())
 }

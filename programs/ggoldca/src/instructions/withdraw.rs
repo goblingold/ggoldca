@@ -1,5 +1,6 @@
 use crate::instructions::DepositWithdraw;
 use crate::macros::generate_seeds;
+use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::math::safe_arithmetics::SafeMulDiv;
 use anchor_lang::prelude::*;
 use anchor_spl::token;
@@ -18,11 +19,18 @@ pub fn handler(
     let signer = &[&seeds[..]];
 
     let supply = ctx.accounts.vault_lp_token_mint_pubkey.supply;
+
     let vault_amount_a = ctx.accounts.vault_input_token_a_account.amount;
     let vault_amount_b = ctx.accounts.vault_input_token_b_account.amount;
 
-    if vault_amount_a > 0 {
-        let amount_a = vault_amount_a.safe_mul_div(lp_amount, supply)?;
+    let fees_amount_a = ctx.accounts.vault_account.acc_non_invested_fees_a;
+    let fees_amount_b = ctx.accounts.vault_account.acc_non_invested_fees_b;
+
+    let vault_amount_a_wo_fees = vault_amount_a.safe_sub(fees_amount_a)?;
+    let vault_amount_b_wo_fees = vault_amount_b.safe_sub(fees_amount_b)?;
+
+    if vault_amount_a_wo_fees > 0 {
+        let amount_a = vault_amount_a_wo_fees.safe_mul_div(lp_amount, supply)?;
         min_amount_a = min_amount_a.saturating_sub(amount_a);
 
         token::transfer(
@@ -33,8 +41,8 @@ pub fn handler(
         )?;
     }
 
-    if vault_amount_b > 0 {
-        let amount_b = vault_amount_b.safe_mul_div(lp_amount, supply)?;
+    if vault_amount_b_wo_fees > 0 {
+        let amount_b = vault_amount_b_wo_fees.safe_mul_div(lp_amount, supply)?;
         min_amount_b = min_amount_b.saturating_sub(amount_b);
 
         token::transfer(
@@ -45,11 +53,13 @@ pub fn handler(
         )?;
     }
 
-    let user_liquidity = ctx
+    let past_liquidity = ctx
         .accounts
         .position
         .liquidity()?
-        .safe_mul_div(u128::from(lp_amount), u128::from(supply))?;
+        .safe_sub(ctx.accounts.vault_account.last_liquidity_increase)?;
+
+    let user_liquidity = past_liquidity.safe_mul_div(u128::from(lp_amount), u128::from(supply))?;
 
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts.modify_liquidity_ctx().with_signer(signer),

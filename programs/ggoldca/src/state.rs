@@ -20,13 +20,20 @@ pub struct VaultAccount {
     /// Destination fee account
     pub dao_treasury_lp_token_account: Pubkey,
 
+    /// Last reinvestment liquidity increase
+    pub last_liquidity_increase: u128,
+
+    /// Accumulated non-invested collected fees
+    pub acc_non_invested_fees_a: u64,
+    pub acc_non_invested_fees_b: u64,
+
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
 
 impl VaultAccount {
     pub const SIZE: usize =
-        Bumps::SIZE + 32 + 32 + 32 + 32 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
+        Bumps::SIZE + 32 + 32 + 32 + 32 + 16 + 8 + 8 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
