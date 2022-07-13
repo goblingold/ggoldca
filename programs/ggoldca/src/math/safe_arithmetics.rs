@@ -99,7 +99,7 @@ mod test {
 
     #[test]
     fn test_safe_mul_div() {
-        let number = 11;
+        let number = 11_u64;
         let multiplier = 5;
         let divisor = 4;
 
@@ -115,7 +115,7 @@ mod test {
 
     #[test]
     fn test_safe_mul_div_2() {
-        let number = 56;
+        let number = 56_u64;
         let multiplier = 23;
         let divisor = 3;
 
@@ -131,7 +131,7 @@ mod test {
 
     #[test]
     fn test_safe_mul_div_3() {
-        let number = 8;
+        let number = 8_u64;
         let multiplier = 3;
         let divisor = 2;
 
