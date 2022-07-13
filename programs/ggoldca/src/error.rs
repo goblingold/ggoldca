@@ -29,4 +29,9 @@ pub enum ErrorCode {
     PositionLimitReached,
     #[msg("Position does not exist or is not active")]
     PositionNotActive,
+
+    #[msg("Not enough fees generated yet")]
+    NotEnoughFees,
+    #[msg("Not enough rewards generated yet")]
+    NotEnoughRewards,
 }

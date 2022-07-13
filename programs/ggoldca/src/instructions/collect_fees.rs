@@ -1,13 +1,13 @@
 use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
-use crate::math::safe_arithmetics::SafeArithmetics;
+use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::VAULT_ACCOUNT_SEED;
+use crate::{FEE_PERCENTAGE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use whirlpool::cpi::accounts::{CollectFees as WhCollectFees, UpdateFeesAndRewards};
 
 #[derive(Accounts)]
@@ -19,10 +19,6 @@ pub struct CollectFees<'info> {
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
-
-    #[account(address = whirlpool::ID)]
-    /// CHECK: address is checked
-    pub whirlpool_program_id: AccountInfo<'info>,
 
     #[account(
         mut,
@@ -36,6 +32,23 @@ pub struct CollectFees<'info> {
         associated_token::authority = vault_account,
     )]
     pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        associated_token::mint = vault_account.input_token_a_mint_pubkey,
+        associated_token::authority = TREASURY_PUBKEY
+    )]
+    pub treasury_token_a_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
+        associated_token::mint = vault_account.input_token_b_mint_pubkey,
+        associated_token::authority = TREASURY_PUBKEY
+    )]
+    pub treasury_token_b_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(address = whirlpool::ID)]
+    /// CHECK: address is checked
+    pub whirlpool_program_id: AccountInfo<'info>,
 
     #[account(mut)]
     /// CHECK: whirlpool cpi
@@ -84,6 +97,39 @@ impl<'info> CollectFees<'info> {
             },
         )
     }
+
+    fn transfer_token_a_from_vault_to_treasury_ctx(
+        &self,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        self._transfer_from_vault_to_treasury_ctx(
+            &self.vault_input_token_a_account,
+            &self.treasury_token_a_account,
+        )
+    }
+
+    fn transfer_token_b_from_vault_to_treasury_ctx(
+        &self,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        self._transfer_from_vault_to_treasury_ctx(
+            &self.vault_input_token_b_account,
+            &self.treasury_token_b_account,
+        )
+    }
+
+    fn _transfer_from_vault_to_treasury_ctx(
+        &self,
+        vault: &Account<'info, TokenAccount>,
+        treasury: &Account<'info, TokenAccount>,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Transfer {
+                from: vault.to_account_info(),
+                to: treasury.to_account_info(),
+                authority: self.vault_account.to_account_info(),
+            },
+        )
+    }
 }
 
 pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
@@ -102,12 +148,39 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
     let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
 
-    let amount_a_diff = amount_a_after.safe_sub(amount_a_before)?;
-    let amount_b_diff = amount_b_after.safe_sub(amount_b_before)?;
+    let mut amount_a_increase = amount_a_after.safe_sub(amount_a_before)?;
+    let mut amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
+
+    if FEE_PERCENTAGE > 0 {
+        let treasury_fee_a = amount_a_increase.safe_mul_div(FEE_PERCENTAGE, 100_u64)?;
+        let treasury_fee_b = amount_b_increase.safe_mul_div(FEE_PERCENTAGE, 100_u64)?;
+
+        msg!("Fs {} {}", treasury_fee_a, treasury_fee_b);
+        msg!("ds {} {}", amount_a_increase, amount_b_increase);
+
+        require!(treasury_fee_a > 0, ErrorCode::NotEnoughFees);
+        require!(treasury_fee_b > 0, ErrorCode::NotEnoughFees);
+
+        token::transfer(
+            ctx.accounts
+                .transfer_token_a_from_vault_to_treasury_ctx()
+                .with_signer(signer),
+            treasury_fee_a,
+        )?;
+        token::transfer(
+            ctx.accounts
+                .transfer_token_b_from_vault_to_treasury_ctx()
+                .with_signer(signer),
+            treasury_fee_b,
+        )?;
+
+        amount_a_increase = amount_a_increase.safe_sub(treasury_fee_a)?;
+        amount_b_increase = amount_b_increase.safe_sub(treasury_fee_b)?;
+    }
 
     let vault = &mut ctx.accounts.vault_account;
-    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.safe_add(amount_a_diff)?;
-    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.safe_add(amount_b_diff)?;
+    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.safe_add(amount_a_increase)?;
+    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.safe_add(amount_b_increase)?;
 
     Ok(())
 }
