@@ -36,8 +36,9 @@ describe("ggoldca", () => {
   const userSigner = program.provider.wallet.publicKey;
 
   const ggClient = new GGoldcaSDK({
-    connection: program.provider.connection,
     programId: program.programId,
+    provider: program.provider,
+    connection: program.provider.connection,
   });
 
   it("Initialize vault", async () => {
