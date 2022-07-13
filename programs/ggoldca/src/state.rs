@@ -17,9 +17,6 @@ pub struct VaultAccount {
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
 
-    /// Destination fee account
-    pub dao_treasury_lp_token_account: Pubkey,
-
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
 
@@ -33,7 +30,7 @@ pub struct VaultAccount {
 
 impl VaultAccount {
     pub const SIZE: usize =
-        Bumps::SIZE + 32 + 32 + 32 + 32 + 16 + 8 + 8 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
+        Bumps::SIZE + 32 + 32 + 32 + 16 + 8 + 8 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
@@ -42,7 +39,6 @@ impl VaultAccount {
             whirlpool_id: params.whirlpool_id,
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
-            dao_treasury_lp_token_account: params.dao_treasury_lp_token_account,
             ..Self::default()
         }
     }
@@ -89,8 +85,6 @@ pub struct InitVaultAccountParams {
     pub input_token_a_mint_pubkey: Pubkey,
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
-    /// Destination fee account
-    pub dao_treasury_lp_token_account: Pubkey,
 }
 
 /// PDA bump seeds

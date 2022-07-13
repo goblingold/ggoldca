@@ -1,6 +1,5 @@
 use crate::error::ErrorCode;
 use crate::state::{Bumps, InitVaultAccountParams, VaultAccount};
-use crate::TREASURY_PUBKEY;
 use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
@@ -49,16 +48,6 @@ pub struct InitializeVault<'info> {
         bump
     )]
     pub vault_lp_token_mint_pubkey: Account<'info, Mint>,
-    #[account(
-        init,
-        payer = user_signer,
-        associated_token::mint = vault_lp_token_mint_pubkey,
-        associated_token::authority = dao_treasury_owner,
-    )]
-    pub dao_treasury_lp_token_account: Account<'info, TokenAccount>,
-    #[account(address = TREASURY_PUBKEY)]
-    /// CHECKED: address is checked
-    pub dao_treasury_owner: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -96,7 +85,6 @@ pub fn handler(ctx: Context<InitializeVault>) -> Result<()> {
             whirlpool_id: ctx.accounts.whirlpool.key(),
             input_token_a_mint_pubkey: ctx.accounts.input_token_a_mint_address.key(),
             input_token_b_mint_pubkey: ctx.accounts.input_token_b_mint_address.key(),
-            dao_treasury_lp_token_account: ctx.accounts.dao_treasury_lp_token_account.key(),
         }));
 
     Ok(())
