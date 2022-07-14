@@ -84,25 +84,6 @@ pub mod ggoldca {
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
     }
-
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn swap(
-        ctx: Context<Swap>,
-        amount: u64,
-        other_amount_threshold: u64,
-        sqrt_price_limit: u128,
-        amount_specified_is_input: bool,
-        a_to_b: bool,
-    ) -> Result<()> {
-        instructions::swap::handler(
-            ctx,
-            amount,
-            other_amount_threshold,
-            sqrt_price_limit,
-            amount_specified_is_input,
-            a_to_b,
-        )
-    }
 }
 
 /// Check if target key is authorized
