@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 /// Number of simultaneous positions allowed
-pub const MAX_POSITIONS: usize = 2;
+pub const MAX_POSITIONS: usize = 3;
 
 /// Strategy vault account
 #[account]
@@ -24,13 +24,16 @@ pub struct VaultAccount {
     pub acc_non_invested_fees_a: u64,
     pub acc_non_invested_fees_b: u64,
 
+    /// Additional padding
+    pub _padding: [u64; 10],
+
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
 
 impl VaultAccount {
     pub const SIZE: usize =
-        Bumps::SIZE + 32 + 32 + 32 + 16 + 8 + 8 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
+        Bumps::SIZE + 32 + 32 + 32 + 16 + 8 + 8 + 8 * 10 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
@@ -45,15 +48,14 @@ impl VaultAccount {
 
     /// Check the existence of a position
     pub fn position_exists(&self, tick_lower_index: i32, tick_upper_index: i32) -> bool {
-        return self
-            .positions
+        self.positions
             .iter()
-            .any(|pos| pos.lower_tick == tick_lower_index && pos.upper_tick == tick_upper_index);
+            .any(|pos| pos.lower_tick == tick_lower_index && pos.upper_tick == tick_upper_index)
     }
 
     /// Check if the given pubkey is a valid position
     pub fn position_address_exists(&self, key: Pubkey) -> bool {
-        return self.positions.iter().any(|pos| pos.pubkey == key);
+        self.positions.iter().any(|pos| pos.pubkey == key)
     }
 
     /// Return the current active position pubkey
