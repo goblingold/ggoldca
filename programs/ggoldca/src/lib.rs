@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use error::ErrorCode;
 use instructions::*;
 
 mod error;
@@ -9,6 +10,12 @@ mod math;
 mod state;
 
 declare_id!("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+
+// DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
+const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
+    191, 17, 77, 109, 253, 243, 16, 188, 64, 67, 249, 18, 51, 62, 173, 81, 128, 208, 121, 29, 74,
+    57, 94, 247, 114, 4, 114, 88, 209, 115, 147, 136,
+]);
 
 // 8XhNoDjjNoLP5Rys1pBJKGdE8acEC1HJsWGkfkMt6JP1
 const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
@@ -25,10 +32,12 @@ const FEE_PERCENTAGE: u64 = 10;
 pub mod ggoldca {
     use super::*;
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
         instructions::initialize_vault::handler(ctx)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn open_position(
         ctx: Context<OpenPosition>,
         bump: u8,
@@ -56,22 +65,27 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, lp_amount, min_amount_a, min_amount_b)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
         instructions::collect_fees::handler(ctx)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn collect_rewards(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
         instructions::collect_rewards::handler(ctx, reward_index)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn swap(
         ctx: Context<Swap>,
         amount: u64,
@@ -89,4 +103,10 @@ pub mod ggoldca {
             a_to_b,
         )
     }
+}
+
+/// Check if target key is authorized
+fn is_admin(key: &Pubkey) -> Result<()> {
+    require!(key == &ADMIN_PUBKEY, ErrorCode::UnauthorizedUser);
+    Ok(())
 }

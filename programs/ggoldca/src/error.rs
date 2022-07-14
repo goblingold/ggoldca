@@ -34,4 +34,7 @@ pub enum ErrorCode {
     NotEnoughFees,
     #[msg("Not enough rewards generated yet")]
     NotEnoughRewards,
+
+    #[msg("Unauthorized user")]
+    UnauthorizedUser,
 }
