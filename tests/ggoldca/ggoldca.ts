@@ -1,4 +1,3 @@
-//#! anchor test
 import * as wh from "@orca-so/whirlpools-sdk";
 import * as anchor from "@project-serum/anchor";
 import { Program } from "@project-serum/anchor";
@@ -194,7 +193,7 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  it("Collect fees", async () => {
+  xit("Collect fees", async () => {
     const ix = await ggClient.collectFeesIx({ userSigner, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
@@ -202,7 +201,7 @@ describe("ggoldca", () => {
     console.log("collect_fees", txSig);
   });
 
-  it("Collect rewards", async () => {
+  xit("Collect rewards", async () => {
     const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
@@ -213,7 +212,7 @@ describe("ggoldca", () => {
     console.log("collect_rewards", txSig);
   });
 
-  it("Reinvest", async () => {
+  xit("Reinvest", async () => {
     const [
       poolData,
       positionAccounts,
