@@ -42,10 +42,16 @@ describe("ggoldca", () => {
   });
 
   it("Initialize vault", async () => {
-    const tx = await ggClient.initializeVaultTx({
+    const ixs = await ggClient.initializeVaultIxs({
       userSigner,
       poolId: POOL_ID,
     });
+
+    const tx = ixs.reduce(
+      (tx, ix) => tx.add(ix),
+      new anchor.web3.Transaction()
+    );
+
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("initialize_vault", txSig);
   });
@@ -62,13 +68,18 @@ describe("ggoldca", () => {
 
     position = positionPda.publicKey;
 
-    const tx = await ggClient.openPositionTx({
+    const ixs = await ggClient.openPositionIxs({
       lowerPrice: new Decimal(0.9),
       upperPrice: new Decimal(1.1),
       userSigner,
       poolId: POOL_ID,
       positionMint: positionMintKeypair.publicKey,
     });
+
+    const tx = ixs.reduce(
+      (tx, ix) => tx.add(ix),
+      new anchor.web3.Transaction()
+    );
 
     const txSig = await program.provider.sendAndConfirm(
       tx,
@@ -87,13 +98,18 @@ describe("ggoldca", () => {
 
     position2 = positionPda.publicKey;
 
-    const tx = await ggClient.openPositionTx({
+    const ixs = await ggClient.openPositionIxs({
       lowerPrice: new Decimal(0.95),
       upperPrice: new Decimal(1.05),
       userSigner,
       poolId: POOL_ID,
       positionMint: positionMintKeypair.publicKey,
     });
+
+    const tx = ixs.reduce(
+      (tx, ix) => tx.add(ix),
+      new anchor.web3.Transaction()
+    );
 
     const txSig = await program.provider.sendAndConfirm(
       tx,
