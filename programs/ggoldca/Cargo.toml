@@ -23,3 +23,4 @@ anchor-spl = "0.25.0"
 anchor-lang = "0.25.0"
 anchor-lang-for-whirlpool = { git = "https://github.com/project-serum/anchor", tag = "v0.20.1", version = "0.20.1", package = "anchor-lang" }
 whirlpool = { git = "https://github.com/orca-so/whirlpools", features = ["cpi"] }
+spl-token-swap = { version = "3.0.0", features = ["no-entrypoint"] }

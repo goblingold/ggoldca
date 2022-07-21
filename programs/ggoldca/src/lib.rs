@@ -76,6 +76,11 @@ pub mod ggoldca {
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn sell_rewards(ctx: Context<SellRewards>) -> Result<()> {
+        instructions::sell_rewards::handler(ctx)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
     }
