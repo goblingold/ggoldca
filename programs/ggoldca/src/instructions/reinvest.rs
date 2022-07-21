@@ -1,14 +1,18 @@
 use crate::error::ErrorCode;
 use crate::interface::*;
 use crate::macros::generate_seeds;
-use crate::math::safe_arithmetics::SafeArithmetics;
+use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
-use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
+use whirlpool::math::{
+    bit_math,
+    tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64},
+    U256,
+};
 
 #[derive(Accounts)]
 pub struct Reinvest<'info> {
@@ -147,26 +151,60 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     let amount_b_before = ctx.accounts.vault_input_token_b_account.amount;
     let liquidity_before = ctx.accounts.position.liquidity()?;
 
-    // First try to deposit the max available amounts
-    ctx.accounts.deposit_max_possible_liquidity_cpi(signer)?;
-
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("1.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("1.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("1.L {}", ctx.accounts.position.liquidity()?);
-
-    // In a first approximation, swap half of the remaining tokens
+    // Swap some tokens in order to maintain the position ratio
     {
         let amount_a = ctx.accounts.vault_input_token_a_account.amount;
         let amount_b = ctx.accounts.vault_input_token_b_account.amount;
 
-        let (amount_to_swap, sqrt_price_limit, is_swap_from_a_to_b) = if amount_a > 0 {
-            (amount_a / 2, MIN_SQRT_PRICE_X64, true)
-        } else {
-            (amount_b / 2, MAX_SQRT_PRICE_X64, false)
+        let (position_amount_a, position_amount_b) = ctx
+            .accounts
+            .position
+            .token_amounts_from_liquidity(ctx.accounts.position.liquidity()?)?;
+
+        let price_x128: U256 = {
+            use anchor_lang_for_whirlpool::AccountDeserialize;
+            use std::borrow::Borrow;
+
+            let acc_data_slice: &[u8] = &ctx.accounts.position.whirlpool.try_borrow_data()?;
+            let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
+                &mut acc_data_slice.borrow(),
+            )?;
+
+            U256::from(pool.sqrt_price).pow(2.into())
         };
 
+        let ratio_x64 = (1_u128 << bit_math::Q64_RESOLUTION)
+            .safe_mul_div(position_amount_a.into(), position_amount_b.into())?;
+
+        let ratio_x192 =
+            U256::from(ratio_x64) << bit_math::Q64_RESOLUTION << bit_math::Q64_RESOLUTION;
+
+        let ratio_to_price_x64 = ratio_x192
+            .safe_div(price_x128)?
+            .try_into_u128()
+            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
+
+        let ratio_amount_b_x64 = ratio_x64.safe_mul(amount_b.into())?;
+        let amount_a_x64 = u128::from(amount_a) << bit_math::Q64_RESOLUTION;
+
+        let numerator = if amount_a_x64 > ratio_amount_b_x64 {
+            amount_a_x64.safe_sub(ratio_amount_b_x64)?
+        } else {
+            ratio_amount_b_x64.safe_sub(amount_a_x64)?
+        };
+
+        let amount_to_swap: u64 = numerator
+            .safe_div((1_u128 << bit_math::Q64_RESOLUTION).safe_add(ratio_to_price_x64)?)?
+            .try_into()
+            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
+
+        let (sqrt_price_limit, is_swap_from_a_to_b) = if amount_a_x64 > ratio_amount_b_x64 {
+            (MIN_SQRT_PRICE_X64, true)
+        } else {
+            (MAX_SQRT_PRICE_X64, false)
+        };
+
+        msg!("s {} {}", amount_to_swap, is_swap_from_a_to_b);
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
             amount_to_swap,      //amount
@@ -188,19 +226,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     ctx.accounts.vault_input_token_a_account.reload()?;
     ctx.accounts.vault_input_token_b_account.reload()?;
 
-    let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
-    let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
-    let liquidity_after = ctx.accounts.position.liquidity()?;
-
-    let amount_a_diff = amount_a_before.safe_sub(amount_a_after)?;
-    let amount_b_diff = amount_b_before.safe_sub(amount_b_after)?;
-    let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
-
-    let vault = &mut ctx.accounts.vault_account;
-    vault.last_liquidity_increase = liquidity_increase;
-    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.saturating_sub(amount_a_diff);
-    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.saturating_sub(amount_b_diff);
-
     msg!("3.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("3.B {}", ctx.accounts.vault_input_token_b_account.amount);
     msg!("3.L {}", ctx.accounts.position.liquidity()?);
@@ -208,5 +233,20 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         "3.dL {}",
         ctx.accounts.vault_account.last_liquidity_increase
     );
+
+    let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
+    let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
+    let liquidity_after = ctx.accounts.position.liquidity()?;
+
+    // TODO swapped non-invested fees are not accounted
+    let amount_a_diff = amount_a_before.saturating_sub(amount_a_after);
+    let amount_b_diff = amount_b_before.saturating_sub(amount_b_after);
+    let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
+
+    let vault = &mut ctx.accounts.vault_account;
+    vault.last_liquidity_increase = liquidity_increase;
+    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.saturating_sub(amount_a_diff);
+    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.saturating_sub(amount_b_diff);
+
     Ok(())
 }
