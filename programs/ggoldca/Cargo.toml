@@ -19,7 +19,7 @@ default = []
 overflow-checks = true
 
 [dependencies]
-anchor-spl = "0.24.2"
-anchor-lang = "0.24.2"
+anchor-spl = "0.25.0"
+anchor-lang = "0.25.0"
 anchor-lang-for-whirlpool = { git = "https://github.com/project-serum/anchor", tag = "v0.20.1", version = "0.20.1", package = "anchor-lang" }
 whirlpool = { git = "https://github.com/orca-so/whirlpools", features = ["cpi"] }
