@@ -119,9 +119,9 @@ describe("ggoldca", () => {
   });
 
   it("Deposit", async () => {
-    const lpAmount = new anchor.BN(1_000_000);
-    const maxAmountA = new anchor.BN(1_000_000);
-    const maxAmountB = new anchor.BN(1_000_000);
+    const lpAmount = new anchor.BN(1_000_000_000_000);
+    const maxAmountA = new anchor.BN(1_000_000_000_000);
+    const maxAmountB = new anchor.BN(1_000_000_000_000);
 
     const { vaultLpTokenMintPubkey } = await ggClient.pdaAccounts.getVaultKeys(
       POOL_ID
@@ -193,7 +193,7 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  xit("Collect fees", async () => {
+  it("Collect fees", async () => {
     const ix = await ggClient.collectFeesIx({ userSigner, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
@@ -201,7 +201,7 @@ describe("ggoldca", () => {
     console.log("collect_fees", txSig);
   });
 
-  xit("Collect rewards", async () => {
+  it("Collect rewards", async () => {
     const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
@@ -212,14 +212,47 @@ describe("ggoldca", () => {
     console.log("collect_rewards", txSig);
   });
 
-  xit("Reinvest", async () => {
+  it("Rebalance", async () => {
+    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
+
+    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
+      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+
+    const [currentPosition, newPosition] = await Promise.all(
+      [position, position2].map((key) =>
+        ggClient.pdaAccounts.getPositionAccounts(key)
+      )
+    );
+
+    const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
+      await program.methods
+        .rebalance()
+        .accounts({
+          userSigner,
+          vaultAccount,
+          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+          vaultInputTokenAAccount,
+          vaultInputTokenBAccount,
+          tokenVaultA: poolData.tokenVaultA,
+          tokenVaultB: poolData.tokenVaultB,
+          currentPosition,
+          newPosition,
+        })
+        .transaction()
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("rebalance", txSig);
+  });
+
+  it("Reinvest", async () => {
     const [
       poolData,
       positionAccounts,
       { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
     ] = await Promise.all([
       ggClient.fetcher.getWhirlpoolData(POOL_ID),
-      ggClient.pdaAccounts.getPositionAccounts(position),
+      ggClient.pdaAccounts.getPositionAccounts(position2),
       ggClient.pdaAccounts.getVaultKeys(POOL_ID),
     ]);
 
@@ -284,39 +317,6 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("Reinvest", txSig);
-  });
-
-  it("Rebalance", async () => {
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-
-    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
-      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
-
-    const [currentPosition, newPosition] = await Promise.all(
-      [position, position2].map((key) =>
-        ggClient.pdaAccounts.getPositionAccounts(key)
-      )
-    );
-
-    const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
-      await program.methods
-        .rebalance()
-        .accounts({
-          userSigner,
-          vaultAccount,
-          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-          vaultInputTokenAAccount,
-          vaultInputTokenBAccount,
-          tokenVaultA: poolData.tokenVaultA,
-          tokenVaultB: poolData.tokenVaultB,
-          currentPosition,
-          newPosition,
-        })
-        .transaction()
-    );
-
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("rebalance", txSig);
   });
 
   it("Withdraw", async () => {

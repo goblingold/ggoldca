@@ -46,6 +46,26 @@ address = "Gun69u86yfheQpdB2DfJhKQqZ8xs9DudjFQypQucFYEi"
 [[test.validator.clone]]
 address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
 
+# tick_arrays
+[[test.validator.clone]]
+address = "5ZngEYAc6sasPpysJS7eNJqKM9MgVNkrMK6eXGDcDU3A"
+
+# tick_arrays
+[[test.validator.clone]]
+address = "8UtrSZ5yDrniY4TGJbfeNuN7RxUKNpGZM5uEzyN2CnVG"
+
+# tick_arrays
+[[test.validator.clone]]
+address = "B7BqZ3i3crL3UjJ3G2uQcrzuRoP8QCbojsLcfEqPVavj"
+
+# tick_arrays
+[[test.validator.clone]]
+address = "DzQCnk3CXbeFYSuqdkMHTApACsAJsECAx1JKgECDKsWz"
+
+# tick_arrays
+[[test.validator.clone]]
+address = "HPy3CwER9dZPiV8WKgQyRVdFthDMRHBLrBJviFWKKkg1"
+
 # USDC_ata for DrrB1 with 10^12 lamports
 [[test.validator.account]]
 address = "CL6TVscze5qrzhb9vJjydDWxj8dB2kj5YUAK5j1s2cAW"
