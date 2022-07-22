@@ -212,39 +212,6 @@ describe("ggoldca", () => {
     console.log("collect_rewards", txSig);
   });
 
-  it("Rebalance", async () => {
-    const poolData = await ggClient.fetcher.getWhirlpoolData(POOL_ID);
-
-    const { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount } =
-      await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
-
-    const [currentPosition, newPosition] = await Promise.all(
-      [position, position2].map((key) =>
-        ggClient.pdaAccounts.getPositionAccounts(key)
-      )
-    );
-
-    const tx = new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX).add(
-      await program.methods
-        .rebalance()
-        .accounts({
-          userSigner,
-          vaultAccount,
-          whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-          vaultInputTokenAAccount,
-          vaultInputTokenBAccount,
-          tokenVaultA: poolData.tokenVaultA,
-          tokenVaultB: poolData.tokenVaultB,
-          currentPosition,
-          newPosition,
-        })
-        .transaction()
-    );
-
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("rebalance", txSig);
-  });
-
   it("Reinvest", async () => {
     const [
       poolData,
@@ -252,7 +219,7 @@ describe("ggoldca", () => {
       { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
     ] = await Promise.all([
       ggClient.fetcher.getWhirlpoolData(POOL_ID),
-      ggClient.pdaAccounts.getPositionAccounts(position2),
+      ggClient.pdaAccounts.getPositionAccounts(position),
       ggClient.pdaAccounts.getVaultKeys(POOL_ID),
     ]);
 
@@ -307,6 +274,76 @@ describe("ggoldca", () => {
             tokenVaultA: poolData.tokenVaultA,
             tokenVaultB: poolData.tokenVaultB,
             position: positionAccounts,
+            tickArray0: tickArrayAddresses[0],
+            tickArray1: tickArrayAddresses[1],
+            tickArray2: tickArrayAddresses[2],
+            oracle: oracleKeypair.publicKey,
+          })
+          .transaction()
+      );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("Reinvest", txSig);
+  });
+
+  it("Rebalance & reinvest", async () => {
+    const [currentPosition, newPosition] = await Promise.all(
+      [position, position2].map((key) =>
+        ggClient.pdaAccounts.getPositionAccounts(key)
+      )
+    );
+
+    const [
+      poolData,
+      { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
+    ] = await Promise.all([
+      ggClient.fetcher.getWhirlpoolData(POOL_ID),
+      ggClient.pdaAccounts.getVaultKeys(POOL_ID),
+    ]);
+
+    const oracleKeypair = wh.PDAUtil.getOracle(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID
+    );
+
+    const tickArrayAddresses = wh.PoolUtil.getTickArrayPublicKeysForSwap(
+      poolData.tickCurrentIndex,
+      poolData.tickSpacing,
+      true,
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      newPosition.whirlpool
+    );
+
+    const tx = new anchor.web3.Transaction()
+      .add(COMPUTE_BUDGET_IX)
+      .add(
+        await program.methods
+          .rebalance()
+          .accounts({
+            userSigner,
+            vaultAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            vaultInputTokenAAccount,
+            vaultInputTokenBAccount,
+            tokenVaultA: poolData.tokenVaultA,
+            tokenVaultB: poolData.tokenVaultB,
+            currentPosition,
+            newPosition,
+          })
+          .transaction()
+      )
+      .add(
+        await program.methods
+          .reinvest()
+          .accounts({
+            userSigner,
+            vaultAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            vaultInputTokenAAccount,
+            vaultInputTokenBAccount,
+            tokenVaultA: poolData.tokenVaultA,
+            tokenVaultB: poolData.tokenVaultB,
+            position: newPosition,
             tickArray0: tickArrayAddresses[0],
             tickArray1: tickArrayAddresses[1],
             tickArray2: tickArrayAddresses[2],
