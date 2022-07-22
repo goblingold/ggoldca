@@ -5,7 +5,7 @@ import {
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
-} from "@solana/spl-token";
+} from "@solana/spl-token-v2";
 import { Decimal } from "decimal.js";
 import { GGoldcaSDK } from "ggoldca-sdk";
 import { Ggoldca } from "../target/types/ggoldca";
