@@ -85,8 +85,6 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    let init_amount_a = ctx.accounts.vault_input_token_a_account.amount;
-    let init_amount_b = ctx.accounts.vault_input_token_b_account.amount;
     let init_liquidity = ctx.accounts.current_position.liquidity()?;
 
     msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
@@ -134,27 +132,7 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
     msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
 
-    let new_amount_a = ctx.accounts.vault_input_token_a_account.amount;
-    let new_amount_b = ctx.accounts.vault_input_token_b_account.amount;
-
     let vault = &mut ctx.accounts.vault_account;
-
-    // If the amounts have decreased, part of the accumulated fees has been provided as liquidity
-    if new_amount_a < init_amount_a {
-        let proportional_non_invested_fees = vault
-            .acc_non_invested_fees_a
-            .safe_mul_div_round_up(new_amount_a, init_amount_a)?;
-
-        vault.acc_non_invested_fees_b = proportional_non_invested_fees;
-    }
-
-    if new_amount_b < init_amount_b {
-        let proportional_non_invested_fees = vault
-            .acc_non_invested_fees_b
-            .safe_mul_div_round_up(new_amount_a, init_amount_b)?;
-
-        vault.acc_non_invested_fees_b = proportional_non_invested_fees;
-    }
 
     let proportional_liquidity_increase = vault
         .last_liquidity_increase

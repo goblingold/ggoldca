@@ -20,9 +20,9 @@ pub struct VaultAccount {
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
 
-    /// Accumulated non-invested collected fees
-    pub acc_non_invested_fees_a: u64,
-    pub acc_non_invested_fees_b: u64,
+    // keep v0.1.0 layout
+    pub _padding_1: u64,
+    pub _padding_2: u64,
 
     /// Additional padding
     pub _padding: [u64; 10],

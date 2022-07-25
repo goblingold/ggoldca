@@ -147,8 +147,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         ctx.accounts.vault_account.last_liquidity_increase
     );
 
-    let amount_a_before = ctx.accounts.vault_input_token_a_account.amount;
-    let amount_b_before = ctx.accounts.vault_input_token_b_account.amount;
     let liquidity_before = ctx.accounts.position.liquidity()?;
 
     // Swap some tokens in order to maintain the position ratio
@@ -234,19 +232,9 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         ctx.accounts.vault_account.last_liquidity_increase
     );
 
-    let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
-    let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
     let liquidity_after = ctx.accounts.position.liquidity()?;
-
-    // TODO swapped non-invested fees are not accounted
-    let amount_a_diff = amount_a_before.saturating_sub(amount_a_after);
-    let amount_b_diff = amount_b_before.saturating_sub(amount_b_after);
     let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
-
-    let vault = &mut ctx.accounts.vault_account;
-    vault.last_liquidity_increase = liquidity_increase;
-    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.saturating_sub(amount_a_diff);
-    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.saturating_sub(amount_b_diff);
+    ctx.accounts.vault_account.last_liquidity_increase = liquidity_increase;
 
     Ok(())
 }

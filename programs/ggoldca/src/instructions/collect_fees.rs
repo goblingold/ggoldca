@@ -148,8 +148,8 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let amount_a_after = ctx.accounts.vault_input_token_a_account.amount;
     let amount_b_after = ctx.accounts.vault_input_token_b_account.amount;
 
-    let mut amount_a_increase = amount_a_after.safe_sub(amount_a_before)?;
-    let mut amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
+    let amount_a_increase = amount_a_after.safe_sub(amount_a_before)?;
+    let amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
 
     if FEE_PERCENTAGE > 0 {
         let treasury_fee_a = amount_a_increase.safe_mul_div_round_up(FEE_PERCENTAGE, 100_u64)?;
@@ -173,14 +173,7 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
                 .with_signer(signer),
             treasury_fee_b,
         )?;
-
-        amount_a_increase = amount_a_increase.safe_sub(treasury_fee_a)?;
-        amount_b_increase = amount_b_increase.safe_sub(treasury_fee_b)?;
     }
-
-    let vault = &mut ctx.accounts.vault_account;
-    vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.safe_add(amount_a_increase)?;
-    vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.safe_add(amount_b_increase)?;
 
     Ok(())
 }

@@ -1,5 +1,4 @@
 use crate::macros::generate_seeds;
-use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -68,8 +67,6 @@ pub fn handler(ctx: Context<SellRewards>) -> Result<()> {
     msg!("0.A {}", ctx.accounts.vault_rewards_token_account.amount);
     msg!("0.B {}", ctx.accounts.vault_input_token_account.amount);
 
-    let amount_before = ctx.accounts.vault_input_token_account.amount;
-
     let data = spl_token_swap::instruction::Swap {
         amount_in: ctx.accounts.vault_rewards_token_account.amount,
         minimum_amount_out: 0,
@@ -116,16 +113,6 @@ pub fn handler(ctx: Context<SellRewards>) -> Result<()> {
     ctx.accounts.vault_input_token_account.reload()?;
     msg!("1.A {}", ctx.accounts.vault_rewards_token_account.amount);
     msg!("1.B {}", ctx.accounts.vault_input_token_account.amount);
-
-    let amount_after = ctx.accounts.vault_input_token_account.amount;
-    let amount_increase = amount_after.safe_sub(amount_before)?;
-
-    let vault = &mut ctx.accounts.vault_account;
-    if ctx.accounts.vault_input_token_account.mint == vault.input_token_a_mint_pubkey {
-        vault.acc_non_invested_fees_a = vault.acc_non_invested_fees_a.safe_add(amount_increase)?;
-    } else {
-        vault.acc_non_invested_fees_b = vault.acc_non_invested_fees_b.safe_add(amount_increase)?;
-    }
 
     Ok(())
 }

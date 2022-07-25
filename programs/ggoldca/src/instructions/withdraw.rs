@@ -23,14 +23,8 @@ pub fn handler(
     let vault_amount_a = ctx.accounts.vault_input_token_a_account.amount;
     let vault_amount_b = ctx.accounts.vault_input_token_b_account.amount;
 
-    let fees_amount_a = ctx.accounts.vault_account.acc_non_invested_fees_a;
-    let fees_amount_b = ctx.accounts.vault_account.acc_non_invested_fees_b;
-
-    let vault_amount_a_wo_fees = vault_amount_a.safe_sub(fees_amount_a)?;
-    let vault_amount_b_wo_fees = vault_amount_b.safe_sub(fees_amount_b)?;
-
-    if vault_amount_a_wo_fees > 0 {
-        let amount_a = vault_amount_a_wo_fees.safe_mul_div(lp_amount, supply)?;
+    if vault_amount_a > 0 {
+        let amount_a = vault_amount_a.safe_mul_div(lp_amount, supply)?;
         min_amount_a = min_amount_a.saturating_sub(amount_a);
 
         token::transfer(
@@ -41,8 +35,8 @@ pub fn handler(
         )?;
     }
 
-    if vault_amount_b_wo_fees > 0 {
-        let amount_b = vault_amount_b_wo_fees.safe_mul_div(lp_amount, supply)?;
+    if vault_amount_b > 0 {
+        let amount_b = vault_amount_b.safe_mul_div(lp_amount, supply)?;
         min_amount_b = min_amount_b.saturating_sub(amount_b);
 
         token::transfer(
