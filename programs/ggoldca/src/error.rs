@@ -17,9 +17,6 @@ pub enum ErrorCode {
     #[msg("Exceeded token max")]
     ExceededTokenMax,
 
-    #[msg("Invalid number remaining accounts")]
-    InvalidRemainingAccounts,
-
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
 
@@ -37,4 +34,10 @@ pub enum ErrorCode {
 
     #[msg("Unauthorized user")]
     UnauthorizedUser,
+
+    #[msg("Invalid swap program ID")]
+    InvalidSwapProgramId,
+
+    #[msg("Invalid number of accounts")]
+    InvalidNumberOfAccounts,
 }
