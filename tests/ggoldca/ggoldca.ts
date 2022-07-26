@@ -7,12 +7,10 @@ import {
   getAssociatedTokenAddress,
 } from "@solana/spl-token-v2";
 import { Decimal } from "decimal.js";
-import { GGoldcaSDK } from "ggoldca-sdk";
+import { GGoldcaSDK, Pools } from "ggoldca-sdk";
 import { Ggoldca } from "../target/types/ggoldca";
 
-const POOL_ID = new anchor.web3.PublicKey(
-  "Fvtf8VCjnkqbETA6KtyHYqHm26ut6w184Jqm4MQjPvv7"
-);
+const POOL_ID = new anchor.web3.PublicKey(Pools.USDH_USDC);
 
 const CONFIRM_OPTS: anchor.web3.ConfirmOptions = {
   skipPreflight: true,
@@ -213,28 +211,11 @@ describe("ggoldca", () => {
   });
 
   it("Reinvest", async () => {
-    const [
-      poolData,
-      positionAccounts,
-      { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
-    ] = await Promise.all([
-      ggClient.fetcher.getWhirlpoolData(POOL_ID),
-      ggClient.pdaAccounts.getPositionAccounts(position),
-      ggClient.pdaAccounts.getVaultKeys(POOL_ID),
-    ]);
-
-    const oracleKeypair = wh.PDAUtil.getOracle(
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      POOL_ID
-    );
-
-    const tickArrayAddresses = wh.PoolUtil.getTickArrayPublicKeysForSwap(
-      poolData.tickCurrentIndex,
-      poolData.tickSpacing,
-      true,
-      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-      positionAccounts.whirlpool
-    );
+    const [poolData, { vaultInputTokenAAccount, vaultInputTokenBAccount }] =
+      await Promise.all([
+        ggClient.fetcher.getWhirlpoolData(POOL_ID),
+        ggClient.pdaAccounts.getVaultKeys(POOL_ID),
+      ]);
 
     // transfer some lamports to simulate the collected rewards
     const [userTokenAAccount, userTokenBAccount] = await Promise.all([
@@ -262,25 +243,7 @@ describe("ggoldca", () => {
       .add(COMPUTE_BUDGET_IX)
       .add(transferAIx)
       .add(transferBIx)
-      .add(
-        await program.methods
-          .reinvest()
-          .accounts({
-            userSigner,
-            vaultAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-            vaultInputTokenAAccount,
-            vaultInputTokenBAccount,
-            tokenVaultA: poolData.tokenVaultA,
-            tokenVaultB: poolData.tokenVaultB,
-            position: positionAccounts,
-            tickArray0: tickArrayAddresses[0],
-            tickArray1: tickArrayAddresses[1],
-            tickArray2: tickArrayAddresses[2],
-            oracle: oracleKeypair.publicKey,
-          })
-          .transaction()
-      );
+      .add(await ggClient.reinvestIx({ userSigner, poolId: POOL_ID }));
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("Reinvest", txSig);

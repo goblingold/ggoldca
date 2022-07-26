@@ -4,12 +4,12 @@
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },
   "dependencies": {
-    "ggoldca-sdk": "link:../ggoldca-sdk/",
     "@orca-so/whirlpools-sdk": "^0.2.3",
     "@project-serum/anchor": "^0.24.2",
     "@solana/spl-token-v2": "npm:@solana/spl-token@^0.2.0",
     "add": "^2.0.6",
     "decimal.js": "^10.3.1",
+    "ggoldca-sdk": "link:../ggoldca-sdk/",
     "yarn": "^1.22.19"
   },
   "devDependencies": {
