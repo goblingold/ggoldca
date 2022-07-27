@@ -4,7 +4,7 @@ use instructions::*;
 
 mod error;
 mod instructions;
-mod interface;
+mod interfaces;
 mod macros;
 mod math;
 mod state;

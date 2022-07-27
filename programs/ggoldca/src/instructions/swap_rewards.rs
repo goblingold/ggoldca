@@ -1,21 +1,15 @@
 use crate::error::ErrorCode;
+use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang_for_whirlpool::{
     context::CpiContext as CpiContextForWhirlpool, AccountDeserialize,
 };
 use anchor_spl::token::{Token, TokenAccount};
 use std::borrow::Borrow;
 use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
-
-// 9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP
-const ORCA_SWAP_PROGRAM_V2_ID: Pubkey = Pubkey::new_from_array([
-    126, 84, 119, 26, 87, 166, 241, 76, 169, 228, 2, 213, 74, 238, 69, 247, 55, 138, 202, 54, 92,
-    123, 22, 154, 126, 200, 63, 81, 130, 178, 152, 240,
-]);
 
 #[derive(Accounts)]
 pub struct SwapRewards<'info> {
@@ -49,6 +43,64 @@ pub struct SwapRewards<'info> {
     pub swap_program: AccountInfo<'info>,
 }
 
+impl<'info> SwapRewards<'info> {
+    fn swap_orca_ctx(
+        &self,
+        remaining: &[AccountInfo<'info>],
+    ) -> CpiContext<'_, '_, '_, 'info, orca_swap_v2::Swap<'info>> {
+        CpiContext::new(
+            self.swap_program.to_account_info(),
+            orca_swap_v2::Swap {
+                token_program: self.token_program.to_account_info(),
+                user_account: self.vault_account.to_account_info(),
+                user_token_a_account: self.vault_rewards_token_account.to_account_info(),
+                user_token_b_account: self.vault_destination_token_account.to_account_info(),
+                amm_id: remaining[0].to_account_info(),
+                amm_authority: remaining[1].to_account_info(),
+                pool_token_a_account: remaining[2].to_account_info(),
+                pool_token_b_account: remaining[3].to_account_info(),
+                lp_token_mint: remaining[4].to_account_info(),
+                fees_account: remaining[5].to_account_info(),
+            },
+        )
+    }
+
+    fn whirlpool_swap_ctx(
+        &self,
+        remaining: &[AccountInfo<'info>],
+        rewards_acc_is_token_a: bool,
+    ) -> CpiContextForWhirlpool<'_, '_, '_, 'info, whirlpool::cpi::accounts::Swap<'info>> {
+        let (token_owner_account_a, token_owner_account_b) = if rewards_acc_is_token_a {
+            (
+                self.vault_rewards_token_account.to_account_info(),
+                self.vault_destination_token_account.to_account_info(),
+            )
+        } else {
+            (
+                self.vault_destination_token_account.to_account_info(),
+                self.vault_rewards_token_account.to_account_info(),
+            )
+        };
+
+        CpiContextForWhirlpool::new(
+            self.swap_program.to_account_info(),
+            whirlpool::cpi::accounts::Swap {
+                token_program: self.token_program.to_account_info(),
+                token_authority: self.vault_account.to_account_info(),
+                token_owner_account_a,
+                token_owner_account_b,
+                whirlpool: remaining[0].to_account_info(),
+                token_vault_a: remaining[1].to_account_info(),
+                token_vault_b: remaining[2].to_account_info(),
+                tick_array_0: remaining[3].to_account_info(),
+                tick_array_1: remaining[4].to_account_info(),
+                tick_array_2: remaining[5].to_account_info(),
+                oracle: remaining[6].to_account_info(),
+            },
+        )
+    }
+}
+
 pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
     msg!("0.A {}", ctx.accounts.vault_rewards_token_account.amount);
     msg!(
@@ -57,13 +109,14 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     );
 
     match ctx.accounts.swap_program.key() {
-        ORCA_SWAP_PROGRAM_V2_ID => swap_orca_cpi(ctx.accounts, ctx.remaining_accounts),
-        id if id == whirlpool::ID => swap_whirlpool_cpi(ctx.accounts, ctx.remaining_accounts),
+        id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx),
+        id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx),
         _ => Err(ErrorCode::InvalidSwapProgramId.into()),
     }?;
 
     ctx.accounts.vault_rewards_token_account.reload()?;
     ctx.accounts.vault_destination_token_account.reload()?;
+
     msg!("1.A {}", ctx.accounts.vault_rewards_token_account.amount);
     msg!(
         "1.B {}",
@@ -73,89 +126,33 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     Ok(())
 }
 
-fn swap_orca_cpi<'info>(accs: &SwapRewards<'info>, remaining: &[AccountInfo<'info>]) -> Result<()> {
-    require!(remaining.len() == 6, InvalidNumberOfAccounts);
+fn swap_orca_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
+    require!(ctx.remaining_accounts.len() == 6, InvalidNumberOfAccounts);
 
-    let data = spl_token_swap::instruction::Swap {
-        amount_in: accs.vault_rewards_token_account.amount,
-        minimum_amount_out: 0,
-    };
-
-    let ix = spl_token_swap::instruction::swap(
-        &ORCA_SWAP_PROGRAM_V2_ID,
-        &anchor_spl::token::ID,
-        &remaining[0].key(),
-        &remaining[1].key(),
-        &accs.vault_account.key(),
-        &accs.vault_rewards_token_account.key(),
-        &remaining[2].key(),
-        &remaining[3].key(),
-        &accs.vault_destination_token_account.key(),
-        &remaining[4].key(),
-        &remaining[5].key(),
-        None,
-        data,
-    )?;
-
-    let mut accounts = vec![
-        accs.swap_program.to_account_info(),
-        accs.token_program.to_account_info(),
-        accs.vault_account.to_account_info(),
-        accs.vault_rewards_token_account.to_account_info(),
-        accs.vault_destination_token_account.to_account_info(),
-    ];
-    accounts.extend_from_slice(remaining);
-
-    let seeds = generate_seeds!(accs.vault_account);
+    let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    invoke_signed(&ix, &accounts, signer)?;
+    orca_swap_v2::swap(
+        ctx.accounts
+            .swap_orca_ctx(ctx.remaining_accounts)
+            .with_signer(signer),
+        ctx.accounts.vault_rewards_token_account.amount,
+        0,
+    )?;
 
     Ok(())
 }
 
-fn swap_whirlpool_cpi<'info>(
-    accs: &SwapRewards<'info>,
-    remaining: &[AccountInfo<'info>],
-) -> Result<()> {
-    require!(remaining.len() == 7, InvalidNumberOfAccounts);
+fn swap_whirlpool_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
+    require!(ctx.remaining_accounts.len() == 7, InvalidNumberOfAccounts);
 
     let rewards_acc_is_token_a = {
-        let acc_data_slice: &[u8] = &remaining[0].try_borrow_data()?;
+        let acc_data_slice: &[u8] = &ctx.remaining_accounts[0].try_borrow_data()?;
         let pool =
             whirlpool::state::whirlpool::Whirlpool::try_deserialize(&mut acc_data_slice.borrow())?;
 
-        accs.vault_rewards_token_account.mint == pool.token_mint_a
+        ctx.accounts.vault_rewards_token_account.mint == pool.token_mint_a
     };
-
-    let (token_owner_account_a, token_owner_account_b) = if rewards_acc_is_token_a {
-        (
-            accs.vault_rewards_token_account.to_account_info(),
-            accs.vault_destination_token_account.to_account_info(),
-        )
-    } else {
-        (
-            accs.vault_destination_token_account.to_account_info(),
-            accs.vault_rewards_token_account.to_account_info(),
-        )
-    };
-
-    let cpi_ctx = CpiContextForWhirlpool::new(
-        accs.swap_program.to_account_info(),
-        whirlpool::cpi::accounts::Swap {
-            token_program: accs.token_program.to_account_info(),
-            token_authority: accs.vault_account.to_account_info(),
-            token_owner_account_a,
-            token_owner_account_b,
-            whirlpool: remaining[0].to_account_info(),
-            token_vault_a: remaining[1].to_account_info(),
-            token_vault_b: remaining[2].to_account_info(),
-            tick_array_0: remaining[3].to_account_info(),
-            tick_array_1: remaining[4].to_account_info(),
-            tick_array_2: remaining[5].to_account_info(),
-            oracle: remaining[6].to_account_info(),
-        },
-    );
 
     let is_swap_from_a_to_b = rewards_acc_is_token_a;
     let sqrt_price_limit = if is_swap_from_a_to_b {
@@ -164,12 +161,14 @@ fn swap_whirlpool_cpi<'info>(
         MAX_SQRT_PRICE_X64
     };
 
-    let seeds = generate_seeds!(accs.vault_account);
+    let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
     whirlpool::cpi::swap(
-        cpi_ctx.with_signer(signer),
-        accs.vault_rewards_token_account.amount,
+        ctx.accounts
+            .whirlpool_swap_ctx(ctx.remaining_accounts, rewards_acc_is_token_a)
+            .with_signer(signer),
+        ctx.accounts.vault_rewards_token_account.amount,
         0,
         sqrt_price_limit,
         true,

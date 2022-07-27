@@ -1,5 +1,5 @@
 use crate::error::ErrorCode;
-use crate::interface::*;
+use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeMulDiv;
 use crate::state::VaultAccount;
