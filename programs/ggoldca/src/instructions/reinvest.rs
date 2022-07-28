@@ -205,11 +205,11 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         msg!("s {} {}", amount_to_swap, is_swap_from_a_to_b);
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
-            amount_to_swap,      //amount
-            0,                   //other_amount_threshold
-            sqrt_price_limit,    //sqrt_price_limit
-            true,                //amount_specified_is_input
-            is_swap_from_a_to_b, //a_to_b
+            amount_to_swap,
+            1,
+            sqrt_price_limit,
+            true,
+            is_swap_from_a_to_b,
         )?;
     }
 

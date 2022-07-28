@@ -137,7 +137,7 @@ fn swap_orca_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) ->
             .swap_orca_ctx(ctx.remaining_accounts)
             .with_signer(signer),
         ctx.accounts.vault_rewards_token_account.amount,
-        0,
+        1,
     )?;
 
     Ok(())
@@ -169,7 +169,7 @@ fn swap_whirlpool_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>
             .whirlpool_swap_ctx(ctx.remaining_accounts, rewards_acc_is_token_a)
             .with_signer(signer),
         ctx.accounts.vault_rewards_token_account.amount,
-        0,
+        1,
         sqrt_price_limit,
         true,
         is_swap_from_a_to_b,
