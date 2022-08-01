@@ -20,9 +20,9 @@ pub struct VaultAccount {
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
 
-    // keep v0.1.0 layout
-    pub _padding_1: u64,
-    pub _padding_2: u64,
+    // Total rewards earned by the vault
+    pub earned_rewards_token_a: u64,
+    pub earned_rewards_token_b: u64,
 
     /// Additional padding
     pub _padding: [u64; 10],

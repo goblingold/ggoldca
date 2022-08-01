@@ -175,5 +175,9 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
         )?;
     }
 
+    let vault = &mut ctx.accounts.vault_account;
+    vault.earned_rewards_token_a = vault.earned_rewards_token_a.safe_add(amount_a_increase)?;
+    vault.earned_rewards_token_b = vault.earned_rewards_token_b.safe_add(amount_b_increase)?;
+
     Ok(())
 }

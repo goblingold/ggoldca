@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
+use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::VaultAccount;
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -108,6 +109,8 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         ctx.accounts.vault_destination_token_account.amount
     );
 
+    let amount_before = ctx.accounts.vault_destination_token_account.amount;
+
     match ctx.accounts.swap_program.key() {
         id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx),
         id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx),
@@ -116,6 +119,16 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
 
     ctx.accounts.vault_rewards_token_account.reload()?;
     ctx.accounts.vault_destination_token_account.reload()?;
+
+    let amount_after = ctx.accounts.vault_destination_token_account.amount;
+    let amount_increase = amount_after.safe_sub(amount_before)?;
+
+    let vault = &mut ctx.accounts.vault_account;
+    if ctx.accounts.vault_destination_token_account.mint == vault.input_token_a_mint_pubkey {
+        vault.earned_rewards_token_a = vault.earned_rewards_token_a.safe_add(amount_increase)?;
+    } else {
+        vault.earned_rewards_token_b = vault.earned_rewards_token_b.safe_add(amount_increase)?;
+    }
 
     msg!("1.A {}", ctx.accounts.vault_rewards_token_account.amount);
     msg!(
