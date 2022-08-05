@@ -1,0 +1,64 @@
+\documentclass[a4paper]{article}
+\usepackage[margin=2cm]{geometry}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{microtype}
+\usepackage{lmodern}
+\usepackage{csquotes}
+
+\usepackage{hyperref}
+
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{bm}
+
+
+\begin{document}
+
+\section{Reinvest}
+Let us consider that the position has a ratio
+\( r = {\text{tokens}_a}/{\text{tokens}_b} \)
+and that asset \(b\) is trading at price \(p\) relative to asset \(a\).
+Given the tokens amounts \((a,b)\), the amounts \(\delta_i\) that should be swapped in order to maintain the same ratio will be determined by
+\begin{equation}
+	\left.
+	\begin{aligned}
+		r        & = \frac{a - \delta_a}{b+\delta_b} \\
+		\delta_a & = \delta_b  \cdot p
+	\end{aligned}
+	\right\} \quad \delta_a  = \frac{a - r b}{1 + r/p}.
+\end{equation}
+
+
+\section{Deposit limits}
+From the \texttt{Uniswap~V3} formulas, for a position with lower and upper price ranges \(\sqrt p_a\) and \(\sqrt p_b\) respectively, the amount of tokens \(x\) and \(y\) required for providing a liquidity \(L\) at price \(P\) read
+
+\begin{equation}
+	\begin{aligned}
+		P       & \le p_a \quad \left\{ \begin{aligned}
+			x & = L \frac{\sqrt{p_b} - \sqrt{p_a}}{\sqrt{p_a} \sqrt{p_b}} \\
+			y & = 0
+		\end{aligned} \right. \\
+		P       & \ge p_b \quad \left\{ \begin{aligned}
+			x & = 0                                      \\
+			y & = L \left(\sqrt{p_b} - \sqrt{p_a}\right)
+		\end{aligned} \right. \\
+		p_a < P & < p_b \quad \left\{ \begin{aligned}
+			x & = L \frac{\sqrt{p_b} - \sqrt{P}}{\sqrt{P} \sqrt{p_b}} \\
+			y & = L \left(\sqrt{P} - \sqrt{p_a}\right)
+		\end{aligned} \right.
+	\end{aligned}
+\end{equation}
+
+
+The maximum amounts correspond to the case in which the price is out of bounds
+\begin{align}
+	\max(x) & = (2^{64}-1) \frac{\sqrt{p_b} - \sqrt{p_a}}{\sqrt{p_a} \sqrt{p_b}}, \\
+	\max(y) & = (2^{64}-1) \left(\sqrt{p_b} - \sqrt{p_a}\right),
+\end{align}
+where it has been assumed that the liquidity is an \texttt{u64} number.
+
+
+\end{document}
