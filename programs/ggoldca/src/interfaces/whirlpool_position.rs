@@ -32,7 +32,6 @@ impl<'info> PositionAccounts<'info> {
         Ok(position.liquidity)
     }
 
-    // impl from @orca-so/whirlpools-sdk: PoolUtil/estimateLiquidityFromTokenAmounts
     pub fn liquidity_from_token_amounts(
         &self,
         token_amount_a: u64,
@@ -56,32 +55,14 @@ impl<'info> PositionAccounts<'info> {
             (position.tick_lower_index, position.tick_upper_index)
         };
 
-        let lower_sqrt_price = tick_math::sqrt_price_from_tick_index(lower_tick);
-        let upper_sqrt_price = tick_math::sqrt_price_from_tick_index(upper_tick);
-
-        if curr_tick >= upper_tick {
-            Ok(est_liquidity_for_token_b(
-                upper_sqrt_price,
-                lower_sqrt_price,
-                token_amount_b,
-            )?)
-        } else if curr_tick < lower_tick {
-            Ok(est_liquidity_for_token_a(
-                lower_sqrt_price,
-                upper_sqrt_price,
-                token_amount_a,
-            )?)
-        } else {
-            let est_liquidity_amount_a =
-                est_liquidity_for_token_a(curr_sqrt_price, upper_sqrt_price, token_amount_a)?;
-            let est_liquidity_amount_b =
-                est_liquidity_for_token_b(curr_sqrt_price, lower_sqrt_price, token_amount_b)?;
-
-            Ok(std::cmp::min(
-                est_liquidity_amount_a,
-                est_liquidity_amount_b,
-            ))
-        }
+        est_liquidity_from_token_amounts(
+            curr_sqrt_price,
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
     }
 
     pub fn token_amounts_from_liquidity(&self, liquidity: u128) -> Result<(u64, u64)> {
@@ -188,6 +169,43 @@ impl<'info> PositionAccounts<'info> {
     }
 }
 
+// impl from @orca-so/whirlpools-sdk: PoolUtil/estimateLiquidityFromTokenAmounts
+fn est_liquidity_from_token_amounts(
+    curr_sqrt_price: u128,
+    curr_tick: i32,
+    lower_tick: i32,
+    upper_tick: i32,
+    token_amount_a: u64,
+    token_amount_b: u64,
+) -> Result<u128> {
+    let lower_sqrt_price = tick_math::sqrt_price_from_tick_index(lower_tick);
+    let upper_sqrt_price = tick_math::sqrt_price_from_tick_index(upper_tick);
+
+    if curr_tick >= upper_tick {
+        Ok(est_liquidity_for_token_b(
+            upper_sqrt_price,
+            lower_sqrt_price,
+            token_amount_b,
+        )?)
+    } else if curr_tick < lower_tick {
+        Ok(est_liquidity_for_token_a(
+            lower_sqrt_price,
+            upper_sqrt_price,
+            token_amount_a,
+        )?)
+    } else {
+        let est_liquidity_amount_a =
+            est_liquidity_for_token_a(curr_sqrt_price, upper_sqrt_price, token_amount_a)?;
+        let est_liquidity_amount_b =
+            est_liquidity_for_token_b(curr_sqrt_price, lower_sqrt_price, token_amount_b)?;
+
+        Ok(std::cmp::min(
+            est_liquidity_amount_a,
+            est_liquidity_amount_b,
+        ))
+    }
+}
+
 // impl from @orca-so/whirlpools-sdk: PoolUtil/estLiquidityForTokenA
 fn est_liquidity_for_token_a(
     sqrt_price_1: u128,
@@ -222,4 +240,120 @@ fn est_liquidity_for_token_b(
     let token_amount_x64 = u128::from(token_amount) << bit_math::Q64_RESOLUTION;
 
     token_amount_x64.safe_div(delta)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    // numbers from orca-sdk tests (increase_liquidity.test.ts)
+    fn test_est_liquidity_from_token_amounts_1() {
+        let curr_tick = 0;
+        let lower_tick = -1280;
+        let upper_tick = 1280;
+        let token_amount_a = 167_000;
+        let token_amount_b = 167_000;
+        let expected = 2693896;
+
+        let liquidity = est_liquidity_from_token_amounts(
+            tick_math::sqrt_price_from_tick_index(curr_tick),
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
+        .unwrap();
+
+        assert_eq!(liquidity, expected);
+    }
+
+    #[test]
+    fn test_est_liquidity_from_token_amounts_2() {
+        let curr_tick = 500;
+        let lower_tick = 7168;
+        let upper_tick = 8960;
+        let token_amount_a = 1_000_000;
+        let token_amount_b = 0;
+        let expected = 16698106;
+
+        let liquidity = est_liquidity_from_token_amounts(
+            tick_math::sqrt_price_from_tick_index(curr_tick),
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
+        .unwrap();
+
+        assert_eq!(liquidity, expected);
+    }
+
+    #[test]
+    fn test_est_liquidity_from_token_amounts_3() {
+        let curr_tick = 1300;
+        let lower_tick = -1280;
+        let upper_tick = 1280;
+        let token_amount_a = 0;
+        let token_amount_b = 167_000;
+        let expected = 1303862;
+
+        let liquidity = est_liquidity_from_token_amounts(
+            tick_math::sqrt_price_from_tick_index(curr_tick),
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
+        .unwrap();
+
+        assert_eq!(liquidity, expected);
+    }
+
+    #[test]
+    fn test_est_liquidity_from_token_amounts_4() {
+        let curr_tick = -443621;
+        let lower_tick = -443632;
+        let upper_tick = -443624;
+        let token_amount_a = 0;
+        let token_amount_b = u64::MAX;
+        let expected = 197997328626229089162140962642757;
+
+        let liquidity = est_liquidity_from_token_amounts(
+            tick_math::sqrt_price_from_tick_index(curr_tick),
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
+        .unwrap();
+
+        assert_eq!(liquidity, expected);
+    }
+
+    #[test]
+    fn test_est_liquidity_from_token_amounts_5() {
+        let curr_tick = 443635;
+        let lower_tick = 436488;
+        let upper_tick = 436496;
+        let token_amount_a = 0;
+        let token_amount_b = u64::MAX;
+        let expected = 15348006551864;
+
+        let liquidity = est_liquidity_from_token_amounts(
+            tick_math::sqrt_price_from_tick_index(curr_tick),
+            curr_tick,
+            lower_tick,
+            upper_tick,
+            token_amount_a,
+            token_amount_b,
+        )
+        .unwrap();
+
+        assert_eq!(liquidity, expected);
+    }
 }
