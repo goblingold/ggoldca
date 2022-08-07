@@ -8,7 +8,7 @@ url = "https://anchor.projectserum.com"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./tests/accounts/test-keypair.json"
 
 [test]
 startup_wait = 20_000

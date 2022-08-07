@@ -6,6 +6,16 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/ggoldca/**/*.ts --
 [test.validator]
 url = "https://api.mainnet-beta.solana.com"
 
+# USDC_ata
+[[test.validator.account]]
+address = "HeXnCGvZ4UKKwe4Q6oHShCuihurF5nqPoYAr643K6R6M"
+filename = "../accounts/USDC.json"
+
+# USDH_ata
+[[test.validator.account]]
+address = "Aj9bamuQ4j9SWKSCCgAA9Pz8ZzCtvw5bQmvjVUisLqsf"
+filename = "../accounts/USDH.json"
+
 # USDH mint
 [[test.validator.clone]]
 address = "USDH1SM1ojwWUga67PGrgFWUHibbjqMvuMaDkRJTgkX"
@@ -65,13 +75,3 @@ address = "DzQCnk3CXbeFYSuqdkMHTApACsAJsECAx1JKgECDKsWz"
 # tick_arrays
 [[test.validator.clone]]
 address = "HPy3CwER9dZPiV8WKgQyRVdFthDMRHBLrBJviFWKKkg1"
-
-# USDC_ata for DrrB1 with 10^12 lamports
-[[test.validator.account]]
-address = "CL6TVscze5qrzhb9vJjydDWxj8dB2kj5YUAK5j1s2cAW"
-filename = "../accounts/CL6TVscze5qrzhb9vJjydDWxj8dB2kj5YUAK5j1s2cAW.json"
-
-# USDH_ata for DrrB1 with 10^12 lamports
-[[test.validator.account]]
-address = "51C35yS12BEvDmcLAV2DDt3oAcQxP5dQUpnihE2ZABMo"
-filename = "../accounts/51C35yS12BEvDmcLAV2DDt3oAcQxP5dQUpnihE2ZABMo.json"
