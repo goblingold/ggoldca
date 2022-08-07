@@ -40,4 +40,9 @@ pub enum ErrorCode {
 
     #[msg("Invalid number of accounts")]
     InvalidNumberOfAccounts,
+
+    #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
+    WhirlpoolLiquidityTooHigh,
+    #[msg("whirlpool: overflow while computing liquidity to token deltas")]
+    WhirlpoolLiquidityToDeltasOverflow,
 }
