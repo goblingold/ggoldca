@@ -6,6 +6,7 @@ import {
   createTransferInstruction,
   getAssociatedTokenAddress,
 } from "@solana/spl-token-v2";
+import { assert } from "chai";
 import { Decimal } from "decimal.js";
 import { GGoldcaSDK, Pools } from "ggoldca-sdk";
 import { Ggoldca } from "../target/types/ggoldca";
@@ -191,23 +192,31 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  it("Collect fees", async () => {
+  it("Failing collect fees", async () => {
     const ix = await ggClient.collectFeesIx({ userSigner, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("collect_fees", txSig);
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert.ok(false);
+    } catch (err) {
+      assert.include(err.toString(), "6010");
+    }
   });
 
-  it("Collect rewards", async () => {
+  it("Failing collect rewards", async () => {
     const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
       new anchor.web3.Transaction()
     );
 
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("collect_rewards", txSig);
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert.ok(false);
+    } catch (err) {
+      assert.include(err.toString(), "6011");
+    }
   });
 
   it("Reinvest", async () => {
