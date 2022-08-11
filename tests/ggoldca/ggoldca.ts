@@ -267,7 +267,12 @@ describe("ggoldca", () => {
 
     const [
       poolData,
-      { vaultAccount, vaultInputTokenAAccount, vaultInputTokenBAccount },
+      {
+        vaultAccount,
+        vaultLpTokenMintPubkey,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
+      },
     ] = await Promise.all([
       ggClient.fetcher.getWhirlpoolData(POOL_ID),
       ggClient.pdaAccounts.getVaultKeys(POOL_ID),
@@ -294,9 +299,9 @@ describe("ggoldca", () => {
           .accounts({
             userSigner,
             vaultAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
             vaultInputTokenAAccount,
             vaultInputTokenBAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
             tokenVaultA: poolData.tokenVaultA,
             tokenVaultB: poolData.tokenVaultB,
             currentPosition,
@@ -310,9 +315,10 @@ describe("ggoldca", () => {
           .accounts({
             userSigner,
             vaultAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+            vaultLpTokenMintPubkey,
             vaultInputTokenAAccount,
             vaultInputTokenBAccount,
+            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
             tokenVaultA: poolData.tokenVaultA,
             tokenVaultB: poolData.tokenVaultB,
             position: newPosition,
