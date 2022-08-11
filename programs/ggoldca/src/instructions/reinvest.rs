@@ -1,4 +1,5 @@
 use crate::error::ErrorCode;
+use crate::instructions::swap_rewards::SwapEvent;
 use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
@@ -225,6 +226,35 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             true,
             is_swap_from_a_to_b,
         )?;
+
+        ctx.accounts.vault_input_token_a_account.reload()?;
+        ctx.accounts.vault_input_token_b_account.reload()?;
+
+        let event = if is_swap_from_a_to_b {
+            SwapEvent {
+                mint_in: ctx.accounts.vault_input_token_a_account.mint,
+                amount_in: amount_to_swap,
+                mint_out: ctx.accounts.vault_input_token_b_account.mint,
+                amount_out: ctx
+                    .accounts
+                    .vault_input_token_b_account
+                    .amount
+                    .safe_sub(amount_b)?,
+            }
+        } else {
+            SwapEvent {
+                mint_in: ctx.accounts.vault_input_token_b_account.mint,
+                amount_in: amount_to_swap,
+                mint_out: ctx.accounts.vault_input_token_a_account.mint,
+                amount_out: ctx
+                    .accounts
+                    .vault_input_token_a_account
+                    .amount
+                    .safe_sub(amount_a)?,
+            }
+        };
+
+        emit!(event);
     }
 
     ctx.accounts.vault_input_token_a_account.reload()?;

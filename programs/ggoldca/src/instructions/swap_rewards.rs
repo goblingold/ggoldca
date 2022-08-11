@@ -13,11 +13,11 @@ use std::borrow::Borrow;
 use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
 #[event]
-struct SwapRewardsEvent {
-    input_mint: Pubkey,
-    input_amount: u64,
-    output_mint: Pubkey,
-    output_amount: u64,
+pub struct SwapEvent {
+    pub mint_in: Pubkey,
+    pub amount_in: u64,
+    pub mint_out: Pubkey,
+    pub amount_out: u64,
 }
 
 #[derive(Accounts)]
@@ -144,11 +144,11 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         ctx.accounts.vault_destination_token_account.amount
     );
 
-    emit!(SwapRewardsEvent {
-        input_mint: ctx.accounts.vault_rewards_token_account.mint,
-        input_amount: ctx.accounts.vault_rewards_token_account.amount,
-        output_mint: ctx.accounts.vault_destination_token_account.mint,
-        output_amount: amount_increase,
+    emit!(SwapEvent {
+        mint_in: ctx.accounts.vault_rewards_token_account.mint,
+        amount_in: ctx.accounts.vault_rewards_token_account.amount,
+        mint_out: ctx.accounts.vault_destination_token_account.mint,
+        amount_out: amount_increase,
     });
 
     Ok(())
