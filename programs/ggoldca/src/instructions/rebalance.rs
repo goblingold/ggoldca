@@ -9,6 +9,13 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
 
+#[event]
+pub struct RebalanceEvent {
+    whirlpool_id: Pubkey,
+    old_liquidity: u128,
+    new_liquidity: u128,
+}
+
 #[derive(Accounts)]
 pub struct Rebalance<'info> {
     pub user_signer: Signer<'info>,
@@ -145,6 +152,12 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
         "1.dL {}",
         ctx.accounts.vault_account.last_liquidity_increase
     );
+
+    emit!(RebalanceEvent {
+        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        old_liquidity: init_liquidity,
+        new_liquidity,
+    });
 
     Ok(())
 }
