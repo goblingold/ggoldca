@@ -10,7 +10,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SOLANA_VERSION: "1.9.5"
+  SOLANA_VERSION: "1.10.31"
   PROGRAM_PATH: "programs/ggoldca/" # Target ggoldca
 
 jobs:
