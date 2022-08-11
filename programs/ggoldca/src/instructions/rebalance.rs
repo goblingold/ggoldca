@@ -10,7 +10,7 @@ use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
 
 #[event]
-pub struct RebalanceEvent {
+struct RebalanceEvent {
     whirlpool_id: Pubkey,
     old_liquidity: u128,
     new_liquidity: u128,

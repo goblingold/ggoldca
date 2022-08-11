@@ -15,7 +15,7 @@ use whirlpool::math::{
 };
 
 #[event]
-pub struct ReinvestEvent {
+struct ReinvestEvent {
     whirlpool_id: Pubkey,
     lp_supply: u64,
     liquidity: u128,

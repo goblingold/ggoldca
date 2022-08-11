@@ -12,6 +12,14 @@ use anchor_spl::token::{Token, TokenAccount};
 use std::borrow::Borrow;
 use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
+#[event]
+struct SwapRewardsEvent {
+    input_mint: Pubkey,
+    input_amount: u64,
+    output_mint: Pubkey,
+    output_amount: u64,
+}
+
 #[derive(Accounts)]
 pub struct SwapRewards<'info> {
     pub user_signer: Signer<'info>,
@@ -135,6 +143,13 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         "1.B {}",
         ctx.accounts.vault_destination_token_account.amount
     );
+
+    emit!(SwapRewardsEvent {
+        input_mint: ctx.accounts.vault_rewards_token_account.mint,
+        input_amount: ctx.accounts.vault_rewards_token_account.amount,
+        output_mint: ctx.accounts.vault_destination_token_account.mint,
+        output_amount: amount_increase,
+    });
 
     Ok(())
 }
