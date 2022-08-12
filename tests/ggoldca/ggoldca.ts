@@ -445,7 +445,7 @@ describe("ggoldca", () => {
     console.log("set fee", txSig);
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
-    assert.ok(data.fee === fee);
+    assert.ok(data.fee.toString() === fee.toString());
   });
 
   it("vault_account", async () => {
