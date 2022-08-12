@@ -19,7 +19,7 @@ pub struct VaultAccount {
 
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
-    /// Fee percentage applied on earnings
+    /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
 
     // Total rewards earned by the vault
@@ -34,8 +34,17 @@ pub struct VaultAccount {
 }
 
 impl VaultAccount {
-    pub const SIZE: usize =
-        Bumps::SIZE + 32 + 32 + 32 + 16 + 8 + 8 + 8 * 10 + 4 + MAX_POSITIONS * PositionInfo::SIZE;
+    pub const SIZE: usize = Bumps::SIZE
+        + 32
+        + 32
+        + 32
+        + 16
+        + 8
+        + 8
+        + 8
+        + 8 * 10
+        + 4
+        + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
@@ -91,7 +100,7 @@ pub struct InitVaultAccountParams {
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
 
-    /// Fee percetange
+    /// Fee percetange using FEE_SCALE
     pub fee: u64,
 }
 

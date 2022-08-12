@@ -3,7 +3,7 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
+use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
@@ -153,9 +153,9 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
 
     if ctx.accounts.vault_account.fee > 0 {
         let treasury_fee_a =
-            amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
+            amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
         let treasury_fee_b =
-            amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
+            amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         require!(treasury_fee_a > 0, ErrorCode::NotEnoughFees);
         require!(treasury_fee_b > 0, ErrorCode::NotEnoughFees);
