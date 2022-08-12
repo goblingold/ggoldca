@@ -19,6 +19,8 @@ pub struct VaultAccount {
 
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
+    /// Fee percentage applied on earnings
+    pub fee: u64,
 
     // Total rewards earned by the vault
     pub earned_rewards_token_a: u64,
@@ -42,6 +44,7 @@ impl VaultAccount {
             whirlpool_id: params.whirlpool_id,
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
+            fee: params.fee,
             ..Self::default()
         }
     }
@@ -87,6 +90,9 @@ pub struct InitVaultAccountParams {
     pub input_token_a_mint_pubkey: Pubkey,
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
+
+    /// Fee percetange
+    pub fee: u64,
 }
 
 /// PDA bump seeds

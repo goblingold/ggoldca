@@ -26,15 +26,13 @@ const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
 const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
 const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 
-const FEE_PERCENTAGE: u64 = 10;
-
 #[program]
 pub mod ggoldca {
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn initialize_vault(ctx: Context<InitializeVault>) -> Result<()> {
-        instructions::initialize_vault::handler(ctx)
+    pub fn initialize_vault(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, fee)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
@@ -88,6 +86,11 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_vault_fee(ctx: Context<SetVaultFee>, fee: u64) -> Result<()> {
+        instructions::set_vault_fee::handler(ctx, fee)
     }
 }
 

@@ -7,6 +7,7 @@ pub mod rebalance;
 pub mod reinvest;
 pub mod swap_rewards;
 pub mod withdraw;
+pub mod set_vault_fee;
 
 pub use collect_fees::*;
 pub use collect_rewards::*;
@@ -17,3 +18,4 @@ pub use rebalance::*;
 pub use reinvest::*;
 pub use swap_rewards::*;
 pub use withdraw::*;
+pub use set_vault_fee::*;

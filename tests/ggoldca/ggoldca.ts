@@ -43,6 +43,7 @@ describe("ggoldca", () => {
     const ixs = await ggClient.initializeVaultIxs({
       userSigner,
       poolId: POOL_ID,
+      fee: new anchor.BN(10),
     });
 
     const tx = ixs.reduce(
@@ -351,6 +352,23 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("withdraw", txSig);
+  });
+
+  it("set vault_account fee", async () => {
+    const fee = new anchor.BN(50);
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setVaultFee({
+        userSigner,
+        poolId: POOL_ID,
+        fee,
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set fee", txSig);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const data = await program.account.vaultAccount.fetch(vaultAccount);
+    assert.ok(data.fee === fee);
   });
 
   it("vault_account", async () => {
