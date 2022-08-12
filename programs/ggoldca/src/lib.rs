@@ -36,10 +36,11 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
+        vault_id: u8,
         fee: u64,
         market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
     ) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, fee, market_rewards_infos)
+        instructions::initialize_vault::handler(ctx, vault_id, fee, market_rewards_infos)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

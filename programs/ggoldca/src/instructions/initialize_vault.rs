@@ -8,6 +8,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
+#[instruction(vault_id: u8)]
 pub struct InitializeVault<'info> {
     #[account(mut)]
     pub user_signer: Signer<'info>,
@@ -22,7 +23,7 @@ pub struct InitializeVault<'info> {
         init,
         payer = user_signer,
         space = 8 + VaultAccount::SIZE,
-        seeds = [VAULT_ACCOUNT_SEED, whirlpool.key().as_ref()],
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_id][..], whirlpool.key().as_ref()],
         bump
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -58,6 +59,7 @@ pub struct InitializeVault<'info> {
 
 pub fn handler(
     ctx: Context<InitializeVault>,
+    vault_id: u8,
     fee: u64,
     market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
 ) -> Result<()> {
@@ -86,6 +88,7 @@ pub fn handler(
     ctx.accounts
         .vault_account
         .set_inner(VaultAccount::init(InitVaultAccountParams {
+            vault_id,
             bumps: Bumps {
                 vault: *ctx.bumps.get("vault_account").unwrap(),
                 lp_token_mint: *ctx.bumps.get("vault_lp_token_mint_pubkey").unwrap(),

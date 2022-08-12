@@ -20,7 +20,7 @@ pub struct DepositWithdrawEvent {
 pub struct DepositWithdraw<'info> {
     pub user_signer: Signer<'info>,
     #[account(
-        seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.as_ref()],
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
