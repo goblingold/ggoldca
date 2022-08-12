@@ -1,3 +1,4 @@
+pub mod close_position;
 pub mod collect_fees;
 pub mod collect_rewards;
 pub mod deposit;
@@ -8,6 +9,7 @@ pub mod reinvest;
 pub mod swap_rewards;
 pub mod withdraw;
 
+pub use close_position::*;
 pub use collect_fees::*;
 pub use collect_rewards::*;
 pub use deposit::*;

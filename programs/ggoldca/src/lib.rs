@@ -47,6 +47,11 @@ pub mod ggoldca {
         instructions::open_position::handler(ctx, bump, tick_lower_index, tick_upper_index)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn close_position(ctx: Context<ClosePosition>) -> Result<()> {
+        instructions::close_position::handler(ctx)
+    }
+
     pub fn deposit(
         ctx: Context<DepositWithdraw>,
         lp_amount: u64,

@@ -56,6 +56,8 @@ describe("ggoldca", () => {
 
   let position;
   let position2;
+  let positionMint;
+  let position2Mint;
 
   it("Open position", async () => {
     const positionMintKeypair = anchor.web3.Keypair.generate();
@@ -65,6 +67,7 @@ describe("ggoldca", () => {
     );
 
     position = positionPda.publicKey;
+    positionMint = positionMintKeypair.publicKey;
 
     const ixs = await ggClient.openPositionIxs({
       lowerPrice: new Decimal(0.9),
@@ -95,6 +98,7 @@ describe("ggoldca", () => {
     );
 
     position2 = positionPda.publicKey;
+    position2Mint = positionMintKeypair.publicKey;
 
     const ixs = await ggClient.openPositionIxs({
       lowerPrice: new Decimal(0.95),
@@ -192,19 +196,20 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  it("Failing collect fees", async () => {
+  it("Try collect fees", async () => {
     const ix = await ggClient.collectFeesIx({ userSigner, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
     try {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-      assert.ok(false);
+      console.log("collect_fees", txSig);
     } catch (err) {
       assert.include(err.toString(), "6010");
+      console.log("Not enought fees generated");
     }
   });
 
-  it("Failing collect rewards", async () => {
+  it("Try collect rewards", async () => {
     const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
@@ -213,9 +218,10 @@ describe("ggoldca", () => {
 
     try {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-      assert.ok(false);
+      console.log("collect_rewards", txSig);
     } catch (err) {
       assert.include(err.toString(), "6011");
+      console.log("Not enought rewards generated");
     }
   });
 
@@ -332,6 +338,77 @@ describe("ggoldca", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("Reinvest", txSig);
+  });
+
+  it("Close position", async () => {
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+
+    // Try claim pending fees/rewards
+    const ixFees = await ggClient.collectFeesIx({ userSigner, position });
+    const ixRewards = await ggClient.collectRewardsIxs({
+      userSigner,
+      position,
+    });
+
+    const txs = [ixFees, ...ixRewards].map((ix) =>
+      new anchor.web3.Transaction().add(ix)
+    );
+
+    const txSigs = await Promise.allSettled(
+      txs.map(async (tx) =>
+        program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS)
+      )
+    );
+
+    const positionTokenAccount = await getAssociatedTokenAddress(
+      positionMint,
+      vaultAccount,
+      true
+    );
+
+    const tx = await program.methods
+      .closePosition()
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        position: position,
+        positionMint: positionMint,
+        positionTokenAccount,
+      })
+      .transaction();
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("close_position", txSig);
+  });
+
+  it("Failing closing position in use", async () => {
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+
+    const positionTokenAccount = await getAssociatedTokenAddress(
+      position2Mint,
+      vaultAccount,
+      true
+    );
+
+    const tx = await program.methods
+      .closePosition()
+      .accounts({
+        userSigner,
+        vaultAccount,
+        whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+        position: position2,
+        positionMint: position2Mint,
+        positionTokenAccount,
+      })
+      .transaction();
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert.ok(false);
+    } catch (err) {
+      assert.include(err.toString(), "6005");
+    }
   });
 
   it("Withdraw", async () => {

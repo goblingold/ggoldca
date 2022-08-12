@@ -43,7 +43,7 @@ pub struct CollectRewards<'info> {
 
     #[account(
         constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
-        constraint = position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
+        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNotActive
     )]
     pub position: PositionAccounts<'info>,
 
@@ -102,7 +102,10 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
 
     let amount_before = ctx.accounts.vault_rewards_token_account.amount;
 
-    whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
+    // ORCA doesn't allow to update the fees and rewards for a position with zero liquidity
+    if ctx.accounts.position.liquidity()? > 0 {
+        whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
+    }
     whirlpool::cpi::collect_reward(
         ctx.accounts.collect_rewards_ctx().with_signer(signer),
         reward_index,
