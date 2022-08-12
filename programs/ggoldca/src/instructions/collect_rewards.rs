@@ -115,8 +115,6 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
 
     if FEE_PERCENTAGE > 0 {
         let treasury_fee = amount_increase.safe_mul_div_round_up(FEE_PERCENTAGE, 100_u64)?;
-        msg!("Fs {}", treasury_fee);
-        msg!("ds {}", amount_increase);
 
         require!(treasury_fee > 0, ErrorCode::NotEnoughRewards);
 

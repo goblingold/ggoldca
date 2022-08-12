@@ -1,4 +1,4 @@
-use crate::instructions::DepositWithdraw;
+use crate::instructions::{DepositWithdraw, DepositWithdrawEvent};
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::math::safe_arithmetics::SafeMulDiv;
@@ -11,9 +11,8 @@ pub fn handler(
     mut min_amount_a: u64,
     mut min_amount_b: u64,
 ) -> Result<()> {
-    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("0.L {}", ctx.accounts.position.liquidity()?);
+    let amount_user_a_before = ctx.accounts.user_token_a_account.amount;
+    let amount_user_b_before = ctx.accounts.user_token_b_account.amount;
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
@@ -64,18 +63,20 @@ pub fn handler(
 
     token::burn(ctx.accounts.burn_user_lps_ctx(), lp_amount)?;
 
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("1.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("1.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("1.L {}", ctx.accounts.position.liquidity()?);
-
-    let user_a = ctx.accounts.user_token_a_account.amount;
-    let user_b = ctx.accounts.user_token_b_account.amount;
     ctx.accounts.user_token_a_account.reload()?;
     ctx.accounts.user_token_b_account.reload()?;
-    msg!("U.A {}", ctx.accounts.user_token_a_account.amount - user_a);
-    msg!("U.B {}", ctx.accounts.user_token_b_account.amount - user_b);
+
+    let amount_user_a_after = ctx.accounts.user_token_a_account.amount;
+    let amount_user_b_after = ctx.accounts.user_token_b_account.amount;
+
+    let amount_user_a_diff = amount_user_a_after.safe_sub(amount_user_a_before)?;
+    let amount_user_b_diff = amount_user_b_after.safe_sub(amount_user_b_before)?;
+
+    emit!(DepositWithdrawEvent {
+        amount_a: amount_user_a_diff,
+        amount_b: amount_user_b_diff,
+        liquidity: user_liquidity
+    });
 
     Ok(())
 }

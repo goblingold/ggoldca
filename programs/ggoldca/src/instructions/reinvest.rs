@@ -1,5 +1,5 @@
 use crate::error::ErrorCode;
-use crate::instructions::swap_rewards::SwapEvent;
+use crate::instructions::SwapEvent;
 use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
@@ -154,14 +154,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("0.L {}", ctx.accounts.position.liquidity()?);
-    msg!(
-        "0.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
-
     let liquidity_before = ctx.accounts.position.liquidity()?;
 
     // Swap some tokens in order to maintain the position ratio
@@ -217,7 +209,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             (MAX_SQRT_PRICE_X64, false)
         };
 
-        msg!("s {} {}", amount_to_swap, is_swap_from_a_to_b);
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
             amount_to_swap,
@@ -257,24 +248,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         emit!(event);
     }
 
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
-
-    // Deposit a second time with the new swapped amounts
     ctx.accounts.deposit_max_possible_liquidity_cpi(signer)?;
-
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-
-    msg!("3.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("3.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("3.L {}", ctx.accounts.position.liquidity()?);
-    msg!(
-        "3.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
 
     let liquidity_after = ctx.accounts.position.liquidity()?;
     let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
