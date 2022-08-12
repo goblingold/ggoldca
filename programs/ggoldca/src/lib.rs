@@ -26,6 +26,8 @@ const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
 const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
 const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 
+const FEE_SCALE: u64 = 100;
+
 #[program]
 pub mod ggoldca {
     use super::*;

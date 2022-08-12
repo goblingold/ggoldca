@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
 use crate::state::{Bumps, InitVaultAccountParams, VaultAccount};
-use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
+use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
@@ -74,6 +74,8 @@ pub fn handler(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
         ctx.accounts.input_token_b_mint_address.key() == token_mint_b,
         ErrorCode::InvalidInputMint
     );
+    // Fee can't be more than 100%
+    require!(fee <= FEE_SCALE, ErrorCode::InvalidFee);
 
     ctx.accounts
         .vault_account
