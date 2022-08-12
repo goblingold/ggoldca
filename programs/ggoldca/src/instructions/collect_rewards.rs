@@ -3,7 +3,7 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{FEE_PERCENTAGE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
+use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
@@ -116,8 +116,9 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let amount_after = ctx.accounts.vault_rewards_token_account.amount;
     let amount_increase = amount_after.safe_sub(amount_before)?;
 
-    if FEE_PERCENTAGE > 0 {
-        let treasury_fee = amount_increase.safe_mul_div_round_up(FEE_PERCENTAGE, 100_u64)?;
+    if ctx.accounts.vault_account.fee > 0 {
+        let treasury_fee =
+            amount_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         require!(treasury_fee > 0, ErrorCode::NotEnoughRewards);
 
