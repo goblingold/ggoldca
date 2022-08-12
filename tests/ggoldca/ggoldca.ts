@@ -8,10 +8,11 @@ import {
 } from "@solana/spl-token-v2";
 import { assert } from "chai";
 import { Decimal } from "decimal.js";
-import { GGoldcaSDK, Pools } from "ggoldca-sdk";
+import { GGoldcaSDK, Pools, VaultId } from "ggoldca-sdk";
 import { Ggoldca } from "../target/types/ggoldca";
 
 const POOL_ID = new anchor.web3.PublicKey(Pools.USDH_USDC);
+const VAULT_ID = new anchor.BN(0);
 
 const CONFIRM_OPTS: anchor.web3.ConfirmOptions = {
   skipPreflight: true,
@@ -39,10 +40,15 @@ describe("ggoldca", () => {
     connection: program.provider.connection,
   });
 
+  const vaultId: VaultId = {
+    whirlpool: POOL_ID,
+    id: VAULT_ID,
+  };
+
   it("Initialize vault", async () => {
     const ixs = await ggClient.initializeVaultIxs({
       userSigner,
-      poolId: POOL_ID,
+      vaultId,
       fee: new anchor.BN(10),
     });
 
@@ -74,7 +80,7 @@ describe("ggoldca", () => {
       lowerPrice: new Decimal(0.9),
       upperPrice: new Decimal(1.1),
       userSigner,
-      poolId: POOL_ID,
+      vaultId,
       positionMint: positionMintKeypair.publicKey,
     });
 
@@ -105,7 +111,7 @@ describe("ggoldca", () => {
       lowerPrice: new Decimal(0.95),
       upperPrice: new Decimal(1.05),
       userSigner,
-      poolId: POOL_ID,
+      vaultId,
       positionMint: positionMintKeypair.publicKey,
     });
 
@@ -128,13 +134,15 @@ describe("ggoldca", () => {
     const maxAmountB = new anchor.BN(1_000_000_000_000);
 
     const { vaultLpTokenMintPubkey } = await ggClient.pdaAccounts.getVaultKeys(
-      POOL_ID
+      vaultId
     );
 
     const userLpTokenAccount = await getAssociatedTokenAddress(
       vaultLpTokenMintPubkey,
       userSigner
     );
+
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
 
     const tx = new anchor.web3.Transaction()
       .add(
@@ -151,7 +159,7 @@ describe("ggoldca", () => {
           maxAmountA,
           maxAmountB,
           userSigner,
-          poolId: POOL_ID,
+          vaultId,
         })
       );
 
@@ -172,7 +180,7 @@ describe("ggoldca", () => {
     );
 
     const { vaultInputTokenAAccount } = await ggClient.pdaAccounts.getVaultKeys(
-      POOL_ID
+      vaultId
     );
 
     const transferIx = createTransferInstruction(
@@ -189,7 +197,7 @@ describe("ggoldca", () => {
         maxAmountA,
         maxAmountB,
         userSigner,
-        poolId: POOL_ID,
+        vaultId,
       })
     );
 
@@ -198,7 +206,7 @@ describe("ggoldca", () => {
   });
 
   it("Try collect fees", async () => {
-    const ix = await ggClient.collectFeesIx({ userSigner, position });
+    const ix = await ggClient.collectFeesIx({ userSigner, position, vaultId });
     const tx = new anchor.web3.Transaction().add(ix);
 
     try {
@@ -211,7 +219,11 @@ describe("ggoldca", () => {
   });
 
   it("Try collect rewards", async () => {
-    const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
+    const ixs = await ggClient.collectRewardsIxs({
+      userSigner,
+      position,
+      vaultId,
+    });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
       new anchor.web3.Transaction()
@@ -230,7 +242,7 @@ describe("ggoldca", () => {
     const [poolData, { vaultInputTokenAAccount, vaultInputTokenBAccount }] =
       await Promise.all([
         ggClient.fetcher.getWhirlpoolData(POOL_ID),
-        ggClient.pdaAccounts.getVaultKeys(POOL_ID),
+        ggClient.pdaAccounts.getVaultKeys(vaultId),
       ]);
 
     // transfer some lamports to simulate the collected rewards
@@ -259,7 +271,7 @@ describe("ggoldca", () => {
       .add(COMPUTE_BUDGET_IX)
       .add(transferAIx)
       .add(transferBIx)
-      .add(await ggClient.reinvestIx({ userSigner, poolId: POOL_ID }));
+      .add(await ggClient.reinvestIx({ userSigner, vaultId }));
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("Reinvest", txSig);
@@ -268,7 +280,7 @@ describe("ggoldca", () => {
   it("Rebalance & reinvest", async () => {
     const [currentPosition, newPosition] = await Promise.all(
       [position, position2].map((key) =>
-        ggClient.pdaAccounts.getPositionAccounts(key)
+        ggClient.pdaAccounts.getPositionAccounts(key, vaultId)
       )
     );
 
@@ -282,7 +294,7 @@ describe("ggoldca", () => {
       },
     ] = await Promise.all([
       ggClient.fetcher.getWhirlpoolData(POOL_ID),
-      ggClient.pdaAccounts.getVaultKeys(POOL_ID),
+      ggClient.pdaAccounts.getVaultKeys(vaultId),
     ]);
 
     const oracleKeypair = wh.PDAUtil.getOracle(
@@ -342,13 +354,19 @@ describe("ggoldca", () => {
   });
 
   it("Close position", async () => {
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
 
     // Try claim pending fees/rewards
-    const ixFees = await ggClient.collectFeesIx({ userSigner, position });
+    const ixFees = await ggClient.collectFeesIx({
+      userSigner,
+      position,
+      vaultId,
+    });
+
     const ixRewards = await ggClient.collectRewardsIxs({
       userSigner,
       position,
+      vaultId,
     });
 
     const txs = [ixFees, ...ixRewards].map((ix) =>
@@ -384,7 +402,7 @@ describe("ggoldca", () => {
   });
 
   it("Failing closing position in use", async () => {
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
 
     const positionTokenAccount = await getAssociatedTokenAddress(
       position2Mint,
@@ -423,7 +441,7 @@ describe("ggoldca", () => {
         minAmountA,
         minAmountB,
         userSigner,
-        poolId: POOL_ID,
+        vaultId,
       })
     );
 
@@ -436,20 +454,20 @@ describe("ggoldca", () => {
     const tx = new anchor.web3.Transaction().add(
       await ggClient.setVaultFee({
         userSigner,
-        poolId: POOL_ID,
+        vaultId,
         fee,
       })
     );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("set fee", txSig);
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
     assert.ok(data.fee.toString() === fee.toString());
   });
 
   it("vault_account", async () => {
-    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(POOL_ID);
+    const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
     console.log(JSON.stringify(data, null, 4));
     return new Promise((resolve) => setTimeout(resolve, 100));

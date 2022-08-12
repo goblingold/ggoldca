@@ -33,8 +33,8 @@ pub mod ggoldca {
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn initialize_vault(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, fee)
+    pub fn initialize_vault(ctx: Context<InitializeVault>, vault_id: u8, fee: u64) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, vault_id, fee)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
