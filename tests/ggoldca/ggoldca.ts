@@ -192,19 +192,20 @@ describe("ggoldca", () => {
     console.log("deposit_with_tokens_in_vault", txSig);
   });
 
-  it("Failing collect fees", async () => {
+  it("Try collect fees", async () => {
     const ix = await ggClient.collectFeesIx({ userSigner, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
     try {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-      assert.ok(false);
+      console.log("collect_fees", txSig);
     } catch (err) {
       assert.include(err.toString(), "6010");
+      console.log("Not enought fees generated");
     }
   });
 
-  it("Failing collect rewards", async () => {
+  it("Try collect rewards", async () => {
     const ixs = await ggClient.collectRewardsIxs({ userSigner, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
@@ -213,9 +214,10 @@ describe("ggoldca", () => {
 
     try {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-      assert.ok(false);
+      console.log("collect_rewards", txSig);
     } catch (err) {
       assert.include(err.toString(), "6011");
+      console.log("Not enought rewards generated");
     }
   });
 
