@@ -5,9 +5,9 @@ pub mod initialize_vault;
 pub mod open_position;
 pub mod rebalance;
 pub mod reinvest;
+pub mod set_vault_fee;
 pub mod swap_rewards;
 pub mod withdraw;
-pub mod set_vault_fee;
 
 pub use collect_fees::*;
 pub use collect_rewards::*;
@@ -16,6 +16,6 @@ pub use initialize_vault::*;
 pub use open_position::*;
 pub use rebalance::*;
 pub use reinvest::*;
+pub use set_vault_fee::*;
 pub use swap_rewards::*;
 pub use withdraw::*;
-pub use set_vault_fee::*;

@@ -54,7 +54,7 @@ pub struct InitializeVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<InitializeVault>, fee:u64) -> Result<()> {
+pub fn handler(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
     // Ensure the whirlpool has the right account data
     let (token_mint_a, token_mint_b) = {
         use anchor_lang_for_whirlpool::AccountDeserialize;

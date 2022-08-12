@@ -152,8 +152,10 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
 
     if ctx.accounts.vault_account.fee > 0 {
-        let treasury_fee_a = amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
-        let treasury_fee_b = amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
+        let treasury_fee_a =
+            amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
+        let treasury_fee_b =
+            amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, 100_u64)?;
 
         require!(treasury_fee_a > 0, ErrorCode::NotEnoughFees);
         require!(treasury_fee_b > 0, ErrorCode::NotEnoughFees);

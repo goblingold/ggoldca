@@ -1,5 +1,5 @@
-use crate::state::{ VaultAccount};
-use crate::{VAULT_ACCOUNT_SEED};
+use crate::state::VaultAccount;
+use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -14,8 +14,7 @@ pub struct SetVaultFee<'info> {
     pub vault_account: Box<Account<'info, VaultAccount>>,
 }
 
-pub fn handler(ctx: Context<SetVaultFee>, fee:u64) -> Result<()> {
-
+pub fn handler(ctx: Context<SetVaultFee>, fee: u64) -> Result<()> {
     ctx.accounts.vault_account.fee = fee;
     Ok(())
 }
