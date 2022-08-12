@@ -3,6 +3,7 @@ macro_rules! generate_seeds {
     ($account:expr) => {
         &[
             "vault".as_ref(),
+            &[$account.vault_id][..],
             $account.whirlpool_id.as_ref(),
             &[$account.bumps.vault],
         ]

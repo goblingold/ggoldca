@@ -7,6 +7,9 @@ pub const MAX_POSITIONS: usize = 3;
 #[account]
 #[derive(Default, Debug)]
 pub struct VaultAccount {
+    /// Vault number for a given whirlpool
+    pub vault_id: u8,
+
     /// PDA bump seeds
     pub bumps: Bumps,
 
@@ -22,7 +25,7 @@ pub struct VaultAccount {
     /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
 
-    // Total rewards earned by the vault
+    /// Total rewards earned by the vault
     pub earned_rewards_token_a: u64,
     pub earned_rewards_token_b: u64,
 
@@ -34,7 +37,8 @@ pub struct VaultAccount {
 }
 
 impl VaultAccount {
-    pub const SIZE: usize = Bumps::SIZE
+    pub const SIZE: usize = 1
+        + Bumps::SIZE
         + 32
         + 32
         + 32
@@ -89,6 +93,9 @@ impl VaultAccount {
 
 /// Initialize a new vault
 pub struct InitVaultAccountParams {
+    /// Vault id
+    pub vault_id: u8,
+
     /// PDA bump seeds
     pub bumps: Bumps,
 
