@@ -43,7 +43,7 @@ pub struct CollectRewards<'info> {
 
     #[account(
         constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
-        constraint = position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
+        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNotActive
     )]
     pub position: PositionAccounts<'info>,
 
