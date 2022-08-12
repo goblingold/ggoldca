@@ -12,6 +12,14 @@ use anchor_spl::token::{Token, TokenAccount};
 use std::borrow::Borrow;
 use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
+#[event]
+pub struct SwapEvent {
+    pub mint_in: Pubkey,
+    pub amount_in: u64,
+    pub mint_out: Pubkey,
+    pub amount_out: u64,
+}
+
 #[derive(Accounts)]
 pub struct SwapRewards<'info> {
     pub user_signer: Signer<'info>,
@@ -103,43 +111,43 @@ impl<'info> SwapRewards<'info> {
 }
 
 pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
-    msg!("0.A {}", ctx.accounts.vault_rewards_token_account.amount);
-    msg!(
-        "0.B {}",
-        ctx.accounts.vault_destination_token_account.amount
-    );
-
-    let amount_before = ctx.accounts.vault_destination_token_account.amount;
+    let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
+    let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
 
     match ctx.accounts.swap_program.key() {
-        id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx),
-        id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx),
+        id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx, amount_to_swap),
+        id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx, amount_to_swap),
         _ => Err(ErrorCode::InvalidSwapProgramId.into()),
     }?;
 
-    ctx.accounts.vault_rewards_token_account.reload()?;
     ctx.accounts.vault_destination_token_account.reload()?;
 
-    let amount_after = ctx.accounts.vault_destination_token_account.amount;
-    let amount_increase = amount_after.safe_sub(amount_before)?;
+    let amount_out_after = ctx.accounts.vault_destination_token_account.amount;
+    let amount_out_increase = amount_out_after.safe_sub(amount_out_before)?;
 
     let vault = &mut ctx.accounts.vault_account;
     if ctx.accounts.vault_destination_token_account.mint == vault.input_token_a_mint_pubkey {
-        vault.earned_rewards_token_a = vault.earned_rewards_token_a.safe_add(amount_increase)?;
+        vault.earned_rewards_token_a =
+            vault.earned_rewards_token_a.safe_add(amount_out_increase)?;
     } else {
-        vault.earned_rewards_token_b = vault.earned_rewards_token_b.safe_add(amount_increase)?;
+        vault.earned_rewards_token_b =
+            vault.earned_rewards_token_b.safe_add(amount_out_increase)?;
     }
 
-    msg!("1.A {}", ctx.accounts.vault_rewards_token_account.amount);
-    msg!(
-        "1.B {}",
-        ctx.accounts.vault_destination_token_account.amount
-    );
+    emit!(SwapEvent {
+        mint_in: ctx.accounts.vault_rewards_token_account.mint,
+        amount_in: amount_to_swap,
+        mint_out: ctx.accounts.vault_destination_token_account.mint,
+        amount_out: amount_out_increase,
+    });
 
     Ok(())
 }
 
-fn swap_orca_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
+fn swap_orca_cpi<'info>(
+    ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>,
+    amount_to_swap: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 6, InvalidNumberOfAccounts);
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
@@ -149,14 +157,17 @@ fn swap_orca_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) ->
         ctx.accounts
             .swap_orca_ctx(ctx.remaining_accounts)
             .with_signer(signer),
-        ctx.accounts.vault_rewards_token_account.amount,
+        amount_to_swap,
         1,
     )?;
 
     Ok(())
 }
 
-fn swap_whirlpool_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
+fn swap_whirlpool_cpi<'info>(
+    ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>,
+    amount_to_swap: u64,
+) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 7, InvalidNumberOfAccounts);
 
     let rewards_acc_is_token_a = {
@@ -181,7 +192,7 @@ fn swap_whirlpool_cpi<'info>(ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>
         ctx.accounts
             .whirlpool_swap_ctx(ctx.remaining_accounts, rewards_acc_is_token_a)
             .with_signer(signer),
-        ctx.accounts.vault_rewards_token_account.amount,
+        amount_to_swap,
         1,
         sqrt_price_limit,
         true,

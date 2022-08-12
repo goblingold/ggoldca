@@ -155,9 +155,6 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
         let treasury_fee_a = amount_a_increase.safe_mul_div_round_up(FEE_PERCENTAGE, 100_u64)?;
         let treasury_fee_b = amount_b_increase.safe_mul_div_round_up(FEE_PERCENTAGE, 100_u64)?;
 
-        msg!("Fs {} {}", treasury_fee_a, treasury_fee_b);
-        msg!("ds {} {}", amount_a_increase, amount_b_increase);
-
         require!(treasury_fee_a > 0, ErrorCode::NotEnoughFees);
         require!(treasury_fee_b > 0, ErrorCode::NotEnoughFees);
 

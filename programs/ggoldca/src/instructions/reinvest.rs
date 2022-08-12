@@ -1,18 +1,27 @@
 use crate::error::ErrorCode;
+use crate::instructions::SwapEvent;
 use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::VAULT_ACCOUNT_SEED;
+use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
-use anchor_spl::token::{Token, TokenAccount};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 use whirlpool::math::{
     bit_math,
     tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64},
     U256,
 };
+
+#[event]
+struct ReinvestEvent {
+    whirlpool_id: Pubkey,
+    lp_supply: u64,
+    liquidity: u128,
+    liquidity_increase: u128,
+}
 
 #[derive(Accounts)]
 pub struct Reinvest<'info> {
@@ -23,6 +32,12 @@ pub struct Reinvest<'info> {
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
+    #[account(
+        mint::authority = vault_account.key(),
+        seeds = [VAULT_LP_TOKEN_MINT_SEED, vault_account.key().as_ref()],
+        bump = vault_account.bumps.lp_token_mint
+    )]
+    pub vault_lp_token_mint_pubkey: Account<'info, Mint>,
 
     #[account(address = whirlpool::ID)]
     /// CHECK: address is checked
@@ -139,14 +154,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
-    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("0.L {}", ctx.accounts.position.liquidity()?);
-    msg!(
-        "0.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
-
     let liquidity_before = ctx.accounts.position.liquidity()?;
 
     // Swap some tokens in order to maintain the position ratio
@@ -202,7 +209,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             (MAX_SQRT_PRICE_X64, false)
         };
 
-        msg!("s {} {}", amount_to_swap, is_swap_from_a_to_b);
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
             amount_to_swap,
@@ -211,30 +217,49 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             true,
             is_swap_from_a_to_b,
         )?;
+
+        ctx.accounts.vault_input_token_a_account.reload()?;
+        ctx.accounts.vault_input_token_b_account.reload()?;
+
+        let event = if is_swap_from_a_to_b {
+            SwapEvent {
+                mint_in: ctx.accounts.vault_input_token_a_account.mint,
+                amount_in: amount_to_swap,
+                mint_out: ctx.accounts.vault_input_token_b_account.mint,
+                amount_out: ctx
+                    .accounts
+                    .vault_input_token_b_account
+                    .amount
+                    .safe_sub(amount_b)?,
+            }
+        } else {
+            SwapEvent {
+                mint_in: ctx.accounts.vault_input_token_b_account.mint,
+                amount_in: amount_to_swap,
+                mint_out: ctx.accounts.vault_input_token_a_account.mint,
+                amount_out: ctx
+                    .accounts
+                    .vault_input_token_a_account
+                    .amount
+                    .safe_sub(amount_a)?,
+            }
+        };
+
+        emit!(event);
     }
 
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
-
-    // Deposit a second time with the new swapped amounts
     ctx.accounts.deposit_max_possible_liquidity_cpi(signer)?;
-
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-
-    msg!("3.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("3.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("3.L {}", ctx.accounts.position.liquidity()?);
-    msg!(
-        "3.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
 
     let liquidity_after = ctx.accounts.position.liquidity()?;
     let liquidity_increase = liquidity_after.safe_sub(liquidity_before)?;
     ctx.accounts.vault_account.last_liquidity_increase = liquidity_increase;
+
+    emit!(ReinvestEvent {
+        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        lp_supply: ctx.accounts.vault_lp_token_mint_pubkey.supply,
+        liquidity: liquidity_after,
+        liquidity_increase,
+    });
 
     Ok(())
 }

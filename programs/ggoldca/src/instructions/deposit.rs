@@ -9,6 +9,13 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Approve, Burn, Mint, MintTo, Revoke, Token, TokenAccount, Transfer};
 
+#[event]
+pub struct DepositWithdrawEvent {
+    pub amount_a: u64,
+    pub amount_b: u64,
+    pub liquidity: u128,
+}
+
 #[derive(Accounts)]
 pub struct DepositWithdraw<'info> {
     pub user_signer: Signer<'info>,
@@ -233,17 +240,14 @@ pub fn handler(
     mut max_amount_a: u64,
     mut max_amount_b: u64,
 ) -> Result<()> {
-    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("0.L {}", ctx.accounts.position.liquidity()?);
+    let amount_user_a_before = ctx.accounts.user_token_a_account.amount;
+    let amount_user_b_before = ctx.accounts.user_token_b_account.amount;
 
     let supply = ctx.accounts.vault_lp_token_mint_pubkey.supply;
+    let liquidity = ctx.accounts.position.liquidity()?;
 
     let user_liquidity = if supply > 0 {
-        ctx.accounts
-            .position
-            .liquidity()?
-            .safe_mul_div_round_up(u128::from(lp_amount), u128::from(supply))?
+        liquidity.safe_mul_div_round_up(u128::from(lp_amount), u128::from(supply))?
     } else {
         u128::from(lp_amount)
     };
@@ -298,18 +302,20 @@ pub fn handler(
     token::revoke(ctx.accounts.revoke_vault_a_from_user_ctx())?;
     token::revoke(ctx.accounts.revoke_vault_b_from_user_ctx())?;
 
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("1.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("1.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("1.L {}", ctx.accounts.position.liquidity()?);
-
-    let user_a = ctx.accounts.user_token_a_account.amount;
-    let user_b = ctx.accounts.user_token_b_account.amount;
     ctx.accounts.user_token_a_account.reload()?;
     ctx.accounts.user_token_b_account.reload()?;
-    msg!("U.A {}", user_a - ctx.accounts.user_token_a_account.amount);
-    msg!("U.B {}", user_b - ctx.accounts.user_token_b_account.amount);
+
+    let amount_user_a_after = ctx.accounts.user_token_a_account.amount;
+    let amount_user_b_after = ctx.accounts.user_token_b_account.amount;
+
+    let amount_user_a_diff = amount_user_a_before.safe_sub(amount_user_a_after)?;
+    let amount_user_b_diff = amount_user_b_before.safe_sub(amount_user_b_after)?;
+
+    emit!(DepositWithdrawEvent {
+        amount_a: amount_user_a_diff,
+        amount_b: amount_user_b_diff,
+        liquidity: user_liquidity
+    });
 
     Ok(())
 }

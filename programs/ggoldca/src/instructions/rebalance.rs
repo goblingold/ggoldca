@@ -9,6 +9,13 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
 
+#[event]
+struct RebalanceEvent {
+    whirlpool_id: Pubkey,
+    old_liquidity: u128,
+    new_liquidity: u128,
+}
+
 #[derive(Accounts)]
 pub struct Rebalance<'info> {
     pub user_signer: Signer<'info>,
@@ -87,14 +94,6 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
 
     let init_liquidity = ctx.accounts.current_position.liquidity()?;
 
-    msg!("0.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("0.B {}", ctx.accounts.vault_input_token_b_account.amount);
-    msg!("0.L {}", init_liquidity);
-    msg!(
-        "0.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
-
     whirlpool::cpi::decrease_liquidity(
         ctx.accounts
             .modify_liquidity_ctx(&ctx.accounts.current_position)
@@ -106,8 +105,6 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
 
     ctx.accounts.vault_input_token_a_account.reload()?;
     ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("1.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("1.B {}", ctx.accounts.vault_input_token_b_account.amount);
 
     let amount_a = ctx.accounts.vault_input_token_a_account.amount;
     let amount_b = ctx.accounts.vault_input_token_b_account.amount;
@@ -126,12 +123,6 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
         amount_b,
     )?;
 
-    ctx.accounts.vault_input_token_a_account.reload()?;
-    ctx.accounts.vault_input_token_b_account.reload()?;
-    msg!("2.L {}", ctx.accounts.new_position.liquidity()?);
-    msg!("2.A {}", ctx.accounts.vault_input_token_a_account.amount);
-    msg!("2.B {}", ctx.accounts.vault_input_token_b_account.amount);
-
     let vault = &mut ctx.accounts.vault_account;
 
     let proportional_liquidity_increase = vault
@@ -141,10 +132,11 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     vault.last_liquidity_increase = proportional_liquidity_increase;
     vault.update_active_position(ctx.accounts.new_position.position.key());
 
-    msg!(
-        "1.dL {}",
-        ctx.accounts.vault_account.last_liquidity_increase
-    );
+    emit!(RebalanceEvent {
+        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        old_liquidity: init_liquidity,
+        new_liquidity,
+    });
 
     Ok(())
 }
