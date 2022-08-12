@@ -102,7 +102,10 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
 
     let amount_before = ctx.accounts.vault_rewards_token_account.amount;
 
-    whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
+    // ORCA doesn't allow to update the fees and rewards for a position with zero liquidity
+    if ctx.accounts.position.liquidity()? > 0 {
+        whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
+    }
     whirlpool::cpi::collect_reward(
         ctx.accounts.collect_rewards_ctx().with_signer(signer),
         reward_index,
