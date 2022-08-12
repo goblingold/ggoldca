@@ -1,3 +1,4 @@
+use crate::state::{MarketRewardsInfo, NUM_MARKET_REWARDS};
 use anchor_lang::prelude::*;
 use error::ErrorCode;
 use instructions::*;
@@ -33,8 +34,12 @@ pub mod ggoldca {
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn initialize_vault(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, fee)
+    pub fn initialize_vault(
+        ctx: Context<InitializeVault>,
+        fee: u64,
+        market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+    ) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, fee, market_rewards_infos)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
@@ -93,6 +98,14 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_market_rewards(
+        ctx: Context<SetMarketRewards>,
+        market_rewards_info: MarketRewardsInfo,
+    ) -> Result<()> {
+        instructions::set_market_rewards::handler(ctx, market_rewards_info)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

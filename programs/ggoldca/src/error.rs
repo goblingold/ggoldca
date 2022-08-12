@@ -34,12 +34,14 @@ pub enum ErrorCode {
 
     #[msg("Unauthorized user")]
     UnauthorizedUser,
-    #[msg("Invalid swap program ID")]
-    InvalidSwapProgramId,
+    #[msg("Invalid swap")]
+    InvalidSwap,
     #[msg("Invalid number of accounts")]
     InvalidNumberOfAccounts,
     #[msg("Invalid Fee")]
     InvalidFee,
+    #[msg("Invalid Market Rewards")]
+    InvalidMarketRewards,
 
     #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,

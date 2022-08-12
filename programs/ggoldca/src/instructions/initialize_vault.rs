@@ -1,5 +1,7 @@
 use crate::error::ErrorCode;
-use crate::state::{Bumps, InitVaultAccountParams, VaultAccount};
+use crate::state::{
+    Bumps, InitVaultAccountParams, MarketRewardsInfo, VaultAccount, NUM_MARKET_REWARDS,
+};
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
@@ -54,7 +56,11 @@ pub struct InitializeVault<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn handler(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
+pub fn handler(
+    ctx: Context<InitializeVault>,
+    fee: u64,
+    market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+) -> Result<()> {
     // Ensure the whirlpool has the right account data
     let (token_mint_a, token_mint_b) = {
         use anchor_lang_for_whirlpool::AccountDeserialize;
@@ -88,6 +94,7 @@ pub fn handler(ctx: Context<InitializeVault>, fee: u64) -> Result<()> {
             input_token_a_mint_pubkey: ctx.accounts.input_token_a_mint_address.key(),
             input_token_b_mint_pubkey: ctx.accounts.input_token_b_mint_address.key(),
             fee,
+            market_rewards_infos,
         }));
 
     Ok(())

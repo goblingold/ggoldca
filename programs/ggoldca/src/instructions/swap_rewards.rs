@@ -2,7 +2,7 @@ use crate::error::ErrorCode;
 use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
-use crate::state::VaultAccount;
+use crate::state::{MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::{
@@ -18,6 +18,31 @@ pub struct SwapEvent {
     pub amount_in: u64,
     pub mint_out: Pubkey,
     pub amount_out: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
+#[repr(u8)]
+pub enum MarketRewards {
+    OrcaV2,
+    OrcaWhirlpool,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
+#[repr(u8)]
+pub enum InputTokens {
+    TokenA,
+    TokenB,
+}
+
+impl Default for MarketRewards {
+    fn default() -> Self {
+        MarketRewards::OrcaV2
+    }
+}
+impl Default for InputTokens {
+    fn default() -> Self {
+        InputTokens::TokenA
+    }
 }
 
 #[derive(Accounts)]
@@ -114,10 +139,32 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
     let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
 
-    match ctx.accounts.swap_program.key() {
-        id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx, amount_to_swap),
-        id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx, amount_to_swap),
-        _ => Err(ErrorCode::InvalidSwapProgramId.into()),
+    let market_rewards: &MarketRewardsInfo = ctx
+        .accounts
+        .vault_account
+        .market_rewards
+        .iter()
+        .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
+        .ok_or(ErrorCode::InvalidMarketRewards)?;
+
+    if market_rewards.destination_mint_id == InputTokens::TokenA {
+        require!(
+            ctx.accounts.vault_account.input_token_a_mint_pubkey
+                == ctx.accounts.vault_destination_token_account.mint,
+            ErrorCode::InvalidSwap
+        );
+    } else {
+        require!(
+            ctx.accounts.vault_account.input_token_b_mint_pubkey
+                == ctx.accounts.vault_destination_token_account.mint,
+            ErrorCode::InvalidSwap
+        );
+    };
+
+    match market_rewards.id {
+        id if id == MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
+        id if id == MarketRewards::OrcaWhirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
+        _ => Err(ErrorCode::InvalidSwap.into()),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;
