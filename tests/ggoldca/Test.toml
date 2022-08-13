@@ -16,6 +16,16 @@ filename = "../accounts/USDC.json"
 address = "Aj9bamuQ4j9SWKSCCgAA9Pz8ZzCtvw5bQmvjVUisLqsf"
 filename = "../accounts/USDH.json"
 
+# ORCA_ata
+[[test.validator.account]]
+address = "4B5LLKk12BCYm1JEFUWqibRAiEXHKZtQE763JMaeVcLG"
+filename = "../accounts/ORCA.json"
+
+# HUBBLE_ata
+[[test.validator.account]]
+address = "7TrowmVUawsPn7TS79zqJVQM1GX2TDhTcdWMvDRVCe68"
+filename = "../accounts/HUBBLE.json"
+
 # USDH mint
 [[test.validator.clone]]
 address = "USDH1SM1ojwWUga67PGrgFWUHibbjqMvuMaDkRJTgkX"

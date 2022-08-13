@@ -265,7 +265,7 @@ describe("ggoldca", () => {
         ggClient.pdaAccounts.getVaultKeys(vaultId),
       ]);
 
-    // transfer some lamports to simulate the collected rewards
+    // transfer some lamports to simulate the collected fees
     const [userTokenAAccount, userTokenBAccount] = await Promise.all([
       getAssociatedTokenAddress(poolData.tokenMintA, userSigner),
       getAssociatedTokenAddress(poolData.tokenMintB, userSigner),
@@ -374,16 +374,85 @@ describe("ggoldca", () => {
   });
 
   it("Swap rewards", async () => {
-    const position = await ggClient.pdaAccounts.getActivePosition(vaultId);
+    const [{ vaultAccount }, position, poolData] = await Promise.all([
+      ggClient.pdaAccounts.getVaultKeys(vaultId),
+      ggClient.pdaAccounts.getActivePosition(vaultId),
+      ggClient.fetcher.getWhirlpoolData(vaultId.whirlpool),
+    ]);
+
+    // transfer some lamports to simulate the collected rewards
+    const rewardMints = poolData.rewardInfos
+      .map((info) => info.mint)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    const userAtas = await Promise.all(
+      rewardMints.map(async (key) =>
+        getAssociatedTokenAddress(key, userSigner, false)
+      )
+    );
+
+    const vaultRewardsAtas = await Promise.all(
+      rewardMints.map(async (key) =>
+        getAssociatedTokenAddress(key, vaultAccount, true)
+      )
+    );
+
+    const ixsTransfer = vaultRewardsAtas.map((_, indx) =>
+      createTransferInstruction(
+        userAtas[indx],
+        vaultRewardsAtas[indx],
+        userSigner,
+        1_000,
+        []
+      )
+    );
 
     const ixs = await ggClient.swapRewardsIxs({ userSigner, vaultId });
-    const tx = ixs.reduce(
+
+    const tx = [...ixsTransfer, ...ixs].reduce(
       (acc, ix) => acc.add(ix),
       new anchor.web3.Transaction()
     );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("swap_rewards", txSig);
+  });
+
+  it("Set market rewards", async () => {
+    const poolData = await ggClient.fetcher.getWhirlpoolData(vaultId.whirlpool);
+    const rewardsMint = poolData.rewardInfos[0].mint;
+
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setMarketRewards({
+        userSigner,
+        vaultId,
+        rewardsMint,
+        marketRewards: {
+          isDestinationTokenA: true,
+          id: { whirlpool: {} },
+        },
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set market rewards", txSig);
+  });
+
+  it("Failing swap in invalid market", async () => {
+    const ixs = await ggClient.swapRewardsIxs({ userSigner, vaultId });
+    const tx = new anchor.web3.Transaction().add(ixs[0]);
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "InvalidSwap")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("Wrong swap market");
+    }
   });
 
   it("Close position", async () => {
@@ -507,22 +576,6 @@ describe("ggoldca", () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
     assert.ok(data.fee.toString() === fee.toString());
-  });
-
-  it("set market rewards", async () => {
-    const tx = new anchor.web3.Transaction().add(
-      await ggClient.setMarketRewards({
-        userSigner,
-        vaultId,
-        marketRewards: {
-          isDestinationTokenA: true,
-          id: { whirlpool: {} },
-        },
-      })
-    );
-
-    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("set market rewards", txSig);
   });
 
   it("vault_account", async () => {
