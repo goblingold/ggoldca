@@ -3,6 +3,9 @@ use anchor_lang::prelude::*;
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
 
+/// Number of whirlpool rewards (from whirlpool::state::whirlpool::NUM_REWARDS)
+pub const WHIRLPOOL_NUM_REWARDS: usize = 3;
+
 /// Strategy vault account
 #[account]
 #[derive(Default, Debug)]
@@ -33,7 +36,7 @@ pub struct VaultAccount {
     pub _padding: [u64; 10],
 
     /// The market where to sell the rewards
-    pub market_rewards: [MarketRewardsInfo; whirlpool::state::whirlpool::NUM_REWARDS],
+    pub market_rewards: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
@@ -50,7 +53,7 @@ impl VaultAccount {
         + 8
         + 8 * 10
         + 4
-        + whirlpool::state::whirlpool::NUM_REWARDS * MarketRewardsInfo::SIZE
+        + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
         + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
@@ -114,7 +117,7 @@ pub struct InitVaultAccountParams {
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
     /// Market rewards infos
-    pub market_rewards_info: [MarketRewardsInfo; whirlpool::state::whirlpool::NUM_REWARDS],
+    pub market_rewards_info: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
 }
 
 /// PDA bump seeds
@@ -160,12 +163,13 @@ impl MarketRewardsInfo {
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum MarketRewards {
+    NotSet,
     OrcaV2,
     Whirlpool,
 }
 
 impl Default for MarketRewards {
     fn default() -> Self {
-        MarketRewards::OrcaV2
+        MarketRewards::NotSet
     }
 }
