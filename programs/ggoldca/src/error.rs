@@ -19,6 +19,8 @@ pub enum ErrorCode {
 
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
+    #[msg("Invalid reward token mint pubkey")]
+    InvalidRewardMint,
 
     #[msg("Position already opened")]
     PositionAlreadyOpened,
@@ -34,12 +36,17 @@ pub enum ErrorCode {
 
     #[msg("Unauthorized user")]
     UnauthorizedUser,
-    #[msg("Invalid swap program ID")]
-    InvalidSwapProgramId,
+    #[msg("Invalid swap")]
+    InvalidSwap,
     #[msg("Invalid number of accounts")]
     InvalidNumberOfAccounts,
     #[msg("Invalid Fee")]
     InvalidFee,
+    #[msg("Invalid Market Rewards")]
+    InvalidMarketRewards,
+
+    #[msg("Invalid swap program ID")]
+    InvalidSwapProgramId,
 
     #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,

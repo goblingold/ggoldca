@@ -33,8 +33,13 @@ pub mod ggoldca {
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn initialize_vault(ctx: Context<InitializeVault>, vault_id: u8, fee: u64) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, vault_id, fee)
+    pub fn initialize_vault(
+        ctx: Context<InitializeVault>,
+        vault_id: u8,
+        fee: u64,
+        market_rewards: Vec<MarketRewardsInfoInput>,
+    ) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, vault_id, fee, market_rewards)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
@@ -93,6 +98,15 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_market_rewards(
+        ctx: Context<SetMarketRewards>,
+        is_destination_token_a: bool,
+        id: MarketRewards,
+    ) -> Result<()> {
+        instructions::set_market_rewards::handler(ctx, is_destination_token_a, id)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

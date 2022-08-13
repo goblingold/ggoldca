@@ -2,7 +2,7 @@ use crate::error::ErrorCode;
 use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
-use crate::state::VaultAccount;
+use crate::state::{MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::{
@@ -20,6 +20,19 @@ pub struct SwapEvent {
     pub amount_out: u64,
 }
 
+#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Eq, Copy, Clone, Debug)]
+#[repr(u8)]
+pub enum MarketRewards {
+    OrcaV2,
+    OrcaWhirlpool,
+}
+
+impl Default for MarketRewards {
+    fn default() -> Self {
+        MarketRewards::OrcaV2
+    }
+}
+
 #[derive(Accounts)]
 pub struct SwapRewards<'info> {
     pub user_signer: Signer<'info>,
@@ -31,9 +44,7 @@ pub struct SwapRewards<'info> {
     pub vault_account: Box<Account<'info, VaultAccount>>,
     #[account(
         mut,
-        // TODO ensure this is a reward account. Other checks? Check mints from deserialized wirlpool?
-        constraint = vault_rewards_token_account.mint != vault_account.input_token_a_mint_pubkey
-                  && vault_rewards_token_account.mint != vault_account.input_token_b_mint_pubkey,
+        constraint = vault_account.market_rewards.iter().any(|info| info.rewards_mint == vault_rewards_token_account.mint),
         associated_token::mint = vault_rewards_token_account.mint,
         associated_token::authority = vault_account,
     )]
@@ -114,10 +125,31 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
     let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
 
-    match ctx.accounts.swap_program.key() {
-        id if id == orca_swap_v2::ID => swap_orca_cpi(&ctx, amount_to_swap),
-        id if id == whirlpool::ID => swap_whirlpool_cpi(&ctx, amount_to_swap),
-        _ => Err(ErrorCode::InvalidSwapProgramId.into()),
+    let market_rewards: &MarketRewardsInfo = ctx
+        .accounts
+        .vault_account
+        .market_rewards
+        .iter()
+        .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
+        .ok_or(ErrorCode::InvalidMarketRewards)?;
+
+    if market_rewards.is_destination_token_a {
+        require!(
+            ctx.accounts.vault_account.input_token_a_mint_pubkey
+                == ctx.accounts.vault_destination_token_account.mint,
+            ErrorCode::InvalidSwap
+        );
+    } else {
+        require!(
+            ctx.accounts.vault_account.input_token_b_mint_pubkey
+                == ctx.accounts.vault_destination_token_account.mint,
+            ErrorCode::InvalidSwap
+        );
+    };
+
+    match market_rewards.id {
+        MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
+        MarketRewards::OrcaWhirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;
@@ -149,6 +181,10 @@ fn swap_orca_cpi<'info>(
     amount_to_swap: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 6, InvalidNumberOfAccounts);
+    require!(
+        ctx.accounts.swap_program.key() == orca_swap_v2::ID,
+        ErrorCode::InvalidSwapProgramId
+    );
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
@@ -169,6 +205,10 @@ fn swap_whirlpool_cpi<'info>(
     amount_to_swap: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 7, InvalidNumberOfAccounts);
+    require!(
+        ctx.accounts.swap_program.key() == whirlpool::ID,
+        ErrorCode::InvalidSwapProgramId
+    );
 
     let rewards_acc_is_token_a = {
         let acc_data_slice: &[u8] = &ctx.remaining_accounts[0].try_borrow_data()?;

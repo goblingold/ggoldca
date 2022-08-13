@@ -46,10 +46,22 @@ describe("ggoldca", () => {
   };
 
   it("Initialize vault", async () => {
+    const vecMarketRewards = [
+      {
+        isDestinationTokenA: true,
+        id: { orcaV2: {} },
+      },
+      {
+        isDestinationTokenA: false,
+        id: { orcaWhirlpool: {} },
+      },
+    ];
+
     const ixs = await ggClient.initializeVaultIxs({
       userSigner,
       vaultId,
       fee: new anchor.BN(10),
+      vecMarketRewards,
     });
 
     const tx = ixs.reduce(
