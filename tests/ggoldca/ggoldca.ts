@@ -48,12 +48,12 @@ describe("ggoldca", () => {
   it("Initialize vault", async () => {
     const vecMarketRewards = [
       {
-        isDestinationTokenA: true,
+        isDestinationTokenA: false,
         id: { orcaV2: {} },
       },
       {
         isDestinationTokenA: false,
-        id: { whirlpool: {} },
+        id: { orcaV2: {} },
       },
     ];
 
