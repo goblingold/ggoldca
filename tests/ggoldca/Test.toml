@@ -56,9 +56,49 @@ address = "Gun69u86yfheQpdB2DfJhKQqZ8xs9DudjFQypQucFYEi"
 [[test.validator.clone]]
 address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
 
-# orca_v2_swap_program
+# orca_swapv2_program
 [[test.validator.clone]]
 address = "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP"
+
+# orca_HBB_USDC_address
+[[test.validator.clone]]
+address = "Fpwa7a1r7kjax1nW25TVP3uiQc7XH9dv9n9UXMJRSTEx"
+
+# orca_HBB_USDC_feeAccount
+[[test.validator.clone]]
+address = "3nyqxtRPnYrwEHneWgbN1197aZoEaemnSNQ7rgJLv8hS"
+
+# orca_HBB_USDC_poolTokenMint
+[[test.validator.clone]]
+address = "cL5WhffCYFRLM4We8VS2W684kM4pHyuvEDwp8Ddw48k"
+
+# orca_HBB_USDC_tokens_addr_HBB
+[[test.validator.clone]]
+address = "2vq1vt98xBPUmvbTC5nH4GtsjJVeA64kwv6CZc7xSAf6"
+
+# orca_HBB_USDC_tokens_addr_USDC
+[[test.validator.clone]]
+address = "B7f4A1Pp6RCjWYv5Lsrf4MecmZQDMekXh4MFQasCQuRB"
+
+# orca_ORCA_USDC_address
+[[test.validator.clone]]
+address = "2p7nYbtPBgtmY69NsE8DAW6szpRJn7tQvDnqvoEWQvjY"
+
+# orca_ORCA_USDC_feeAccount
+[[test.validator.clone]]
+address = "7CXZED4jfRp3qdHB9Py3up6v1C4UhHofFvfT6RXbJLRN"
+
+# orca_ORCA_USDC_poolTokenMint
+[[test.validator.clone]]
+address = "n8Mpu28RjeYD7oUX3LG1tPxzhRZh3YYLRSHcHRdS3Zx"
+
+# orca_ORCA_USDC_tokens_addr_ORCA
+[[test.validator.clone]]
+address = "9vYWHBPz817wJdQpE8u3h8UoY3sZ16ZXdCcvLB7jY4Dj"
+
+# orca_ORCA_USDC_tokens_addr_USDC
+[[test.validator.clone]]
+address = "6UczejMUv1tzdvUzKpULKHxrK9sqLm8edR1v9jinVWm9"
 
 # tick_arrays
 [[test.validator.clone]]
