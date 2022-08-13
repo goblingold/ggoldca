@@ -117,10 +117,10 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let amount_increase = amount_after.safe_sub(amount_before)?;
 
     if ctx.accounts.vault_account.fee > 0 {
+        require!(amount_increase > FEE_SCALE, ErrorCode::NotEnoughRewards);
+
         let treasury_fee =
             amount_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
-
-        require!(treasury_fee > 0, ErrorCode::NotEnoughRewards);
 
         token::transfer(
             ctx.accounts
