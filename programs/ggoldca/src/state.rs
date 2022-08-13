@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::instructions::{swap_rewards::MarketRewards, MarketRewardsInfoInput};
+use crate::instructions::swap_rewards::MarketRewards;
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
@@ -37,7 +37,7 @@ pub struct VaultAccount {
     pub _padding: [u64; 10],
 
     /// The market where to sell the rewards
-    pub market_rewards: Vec<MarketRewardsInfo>,
+    pub market_rewards: [MarketRewardsInfo; NUM_MARKET_REWARDS],
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
@@ -65,6 +65,7 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             fee: params.fee,
+            market_rewards: params.market_rewards_info,
             ..Self::default()
         }
     }
@@ -116,8 +117,8 @@ pub struct InitVaultAccountParams {
 
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
-    /// Market rewards
-    pub market_rewards: Vec<MarketRewardsInfoInput>,
+    /// Market rewards infos
+    pub market_rewards_info: [MarketRewardsInfo; NUM_MARKET_REWARDS],
 }
 
 /// PDA bump seeds

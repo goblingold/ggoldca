@@ -150,9 +150,8 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     };
 
     match market_rewards.id {
-        id if id == MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
-        id if id == MarketRewards::OrcaWhirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
-        _ => Err(ErrorCode::InvalidSwap.into()),
+        MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
+        MarketRewards::OrcaWhirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;
