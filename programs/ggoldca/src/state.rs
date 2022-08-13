@@ -163,9 +163,9 @@ impl MarketRewardsInfo {
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum MarketRewards {
+    NotSet,
     OrcaV2,
     Whirlpool,
-    NotSet,
 }
 
 impl Default for MarketRewards {
