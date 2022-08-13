@@ -225,7 +225,7 @@ describe("ggoldca", () => {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
       console.log("collect_fees", txSig);
     } catch (err) {
-      assert.include(err.toString(), "6010");
+      assert.include(err.toString(), "6011");
       console.log("Not enought fees generated");
     }
   });
@@ -245,7 +245,7 @@ describe("ggoldca", () => {
       const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
       console.log("collect_rewards", txSig);
     } catch (err) {
-      assert.include(err.toString(), "6011");
+      assert.include(err.toString(), "6012");
       console.log("Not enought rewards generated");
     }
   });
