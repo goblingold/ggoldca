@@ -373,6 +373,19 @@ describe("ggoldca", () => {
     console.log("Reinvest", txSig);
   });
 
+  it("swap rewards", async () => {
+    const position = await ggClient.pdaAccounts.getActivePosition(vaultId);
+
+    const ixs = await ggClient.swapRewardsIxs({ userSigner, vaultId });
+    const tx = ixs.reduce(
+      (acc, ix) => acc.add(ix),
+      new anchor.web3.Transaction()
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("swap_rewards", txSig);
+  });
+
   it("Close position", async () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
 
