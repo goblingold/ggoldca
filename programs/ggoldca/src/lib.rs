@@ -8,7 +8,6 @@ mod interfaces;
 mod macros;
 mod math;
 mod state;
-use crate::state::MarketRewards;
 
 declare_id!("ECzqPRCK7S7jXeNWoc3QrYH6yWQkcQGpGR2RWqRQ9e9P");
 

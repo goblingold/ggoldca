@@ -160,7 +160,7 @@ impl MarketRewardsInfo {
     pub const SIZE: usize = 32 + 1 + 2;
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
+#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(u8)]
 pub enum MarketRewards {
     NotSet,
