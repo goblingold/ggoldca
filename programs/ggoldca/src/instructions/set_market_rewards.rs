@@ -1,10 +1,8 @@
 use crate::error::ErrorCode;
-use crate::state::{MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
-
-use super::swap_rewards::MarketRewards;
 
 #[derive(Accounts)]
 pub struct SetMarketRewards<'info> {
