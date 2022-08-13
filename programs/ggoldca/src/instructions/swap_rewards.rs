@@ -27,21 +27,9 @@ pub enum MarketRewards {
     OrcaWhirlpool,
 }
 
-#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
-#[repr(u8)]
-pub enum InputTokens {
-    TokenA,
-    TokenB,
-}
-
 impl Default for MarketRewards {
     fn default() -> Self {
         MarketRewards::OrcaV2
-    }
-}
-impl Default for InputTokens {
-    fn default() -> Self {
-        InputTokens::TokenA
     }
 }
 
@@ -147,7 +135,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
         .ok_or(ErrorCode::InvalidMarketRewards)?;
 
-    if market_rewards.destination_mint_id == InputTokens::TokenA {
+    if market_rewards.is_destination_token_a {
         require!(
             ctx.accounts.vault_account.input_token_a_mint_pubkey
                 == ctx.accounts.vault_destination_token_account.mint,

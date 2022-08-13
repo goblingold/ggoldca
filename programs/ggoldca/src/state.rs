@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::instructions::swap_rewards::{InputTokens, MarketRewards};
+use crate::instructions::swap_rewards::MarketRewards;
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
@@ -152,11 +152,11 @@ pub struct MarketRewardsInfo {
     /// Pubkey of the rewards token mint
     pub rewards_mint: Pubkey,
     /// Pubkey of the mint output to swap the rewards for
-    pub destination_mint_id: InputTokens,
+    pub is_destination_token_a: bool,
     /// Id of market associated
     pub id: MarketRewards,
 }
 
 impl MarketRewardsInfo {
-    pub const SIZE: usize = 32 + 1;
+    pub const SIZE: usize = 32 + 1 + 2;
 }
