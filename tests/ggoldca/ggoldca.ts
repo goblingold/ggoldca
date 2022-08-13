@@ -397,7 +397,17 @@ describe("ggoldca", () => {
       })
       .transaction();
 
+    const numPositionsBefore = (
+      await program.account.vaultAccount.fetch(vaultAccount)
+    ).positions.length;
+
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+
+    const numPositionsAfter = (
+      await program.account.vaultAccount.fetch(vaultAccount)
+    ).positions.length;
+
+    assert.equal(numPositionsAfter, numPositionsBefore - 1);
     console.log("close_position", txSig);
   });
 

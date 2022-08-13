@@ -62,5 +62,10 @@ pub fn handler(ctx: Context<ClosePosition>) -> Result<()> {
 
     whirlpool::cpi::close_position(ctx.accounts.close_position_ctx().with_signer(signer))?;
 
+    ctx.accounts
+        .vault_account
+        .positions
+        .retain(|position| &position.pubkey != ctx.accounts.position.key);
+
     Ok(())
 }
