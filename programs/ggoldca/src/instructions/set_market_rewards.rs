@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::state::{MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
@@ -40,7 +41,7 @@ pub fn handler(
     let index: usize = reward_infos
         .iter()
         .position(|ri| ri.mint == ctx.accounts.rewards_mint.key())
-        .unwrap();
+        .ok_or_else(|| error!(ErrorCode::InvalidRewardMint))?;
 
     ctx.accounts.vault_account.market_rewards[index] = MarketRewardsInfo {
         rewards_mint: ctx.accounts.rewards_mint.key(),
