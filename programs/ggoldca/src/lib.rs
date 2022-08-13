@@ -8,6 +8,7 @@ mod interfaces;
 mod macros;
 mod math;
 mod state;
+use crate::state::MarketRewards;
 
 declare_id!("ECzqPRCK7S7jXeNWoc3QrYH6yWQkcQGpGR2RWqRQ9e9P");
 
@@ -30,6 +31,7 @@ const FEE_SCALE: u64 = 100;
 
 #[program]
 pub mod ggoldca {
+
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

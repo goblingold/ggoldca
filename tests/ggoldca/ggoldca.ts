@@ -53,7 +53,7 @@ describe("ggoldca", () => {
       },
       {
         isDestinationTokenA: false,
-        id: { orcaWhirlpool: {} },
+        id: { whirlpool: {} },
       },
     ];
 
