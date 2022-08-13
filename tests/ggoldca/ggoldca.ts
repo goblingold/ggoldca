@@ -509,6 +509,22 @@ describe("ggoldca", () => {
     assert.ok(data.fee.toString() === fee.toString());
   });
 
+  it("set market rewards", async () => {
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setMarketRewards({
+        userSigner,
+        vaultId,
+        marketRewards: {
+          isDestinationTokenA: true,
+          id: { whirlpool: {} },
+        },
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set market rewards", txSig);
+  });
+
   it("vault_account", async () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
     const data = await program.account.vaultAccount.fetch(vaultAccount);

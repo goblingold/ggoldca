@@ -105,10 +105,9 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn set_market_rewards(
         ctx: Context<SetMarketRewards>,
-        is_destination_token_a: bool,
-        id: MarketRewards,
+        market_rewards: MarketRewardsInfoInput,
     ) -> Result<()> {
-        instructions::set_market_rewards::handler(ctx, is_destination_token_a, id)
+        instructions::set_market_rewards::handler(ctx, market_rewards)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
