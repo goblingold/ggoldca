@@ -56,6 +56,10 @@ address = "Gun69u86yfheQpdB2DfJhKQqZ8xs9DudjFQypQucFYEi"
 [[test.validator.clone]]
 address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
 
+# orca_v2_swap_program
+[[test.validator.clone]]
+address = "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP"
+
 # tick_arrays
 [[test.validator.clone]]
 address = "5ZngEYAc6sasPpysJS7eNJqKM9MgVNkrMK6eXGDcDU3A"
