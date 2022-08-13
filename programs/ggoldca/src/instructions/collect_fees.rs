@@ -12,7 +12,6 @@ use whirlpool::cpi::accounts::{CollectFees as WhCollectFees, UpdateFeesAndReward
 
 #[derive(Accounts)]
 pub struct CollectFees<'info> {
-    pub user_signer: Signer<'info>,
     #[account(
         mut,
         seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
@@ -59,7 +58,7 @@ pub struct CollectFees<'info> {
 
     #[account(
         constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
-        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNotActive
+        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNonExistence
     )]
     pub position: PositionAccounts<'info>,
 

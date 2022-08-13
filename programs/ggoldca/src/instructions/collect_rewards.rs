@@ -12,7 +12,6 @@ use whirlpool::cpi::accounts::{CollectReward, UpdateFeesAndRewards};
 
 #[derive(Accounts)]
 pub struct CollectRewards<'info> {
-    pub user_signer: Signer<'info>,
     #[account(
         seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
@@ -43,7 +42,7 @@ pub struct CollectRewards<'info> {
 
     #[account(
         constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
-        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNotActive
+        constraint = vault_account.position_address_exists(position.position.key()) @ ErrorCode::PositionNonExistence
     )]
     pub position: PositionAccounts<'info>,
 

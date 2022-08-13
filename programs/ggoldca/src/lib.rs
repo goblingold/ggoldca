@@ -58,6 +58,24 @@ pub mod ggoldca {
         instructions::close_position::handler(ctx)
     }
 
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_market_rewards(
+        ctx: Context<SetMarketRewards>,
+        market_rewards: MarketRewardsInfoInput,
+    ) -> Result<()> {
+        instructions::set_market_rewards::handler(ctx, market_rewards)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_vault_fee(ctx: Context<SetVaultFee>, fee: u64) -> Result<()> {
+        instructions::set_vault_fee::handler(ctx, fee)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
+        instructions::rebalance::handler(ctx)
+    }
+
     pub fn deposit(
         ctx: Context<DepositWithdraw>,
         lp_amount: u64,
@@ -76,42 +94,20 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, lp_amount, min_amount_a, min_amount_b)
     }
 
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
         instructions::collect_fees::handler(ctx)
     }
 
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn collect_rewards(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
         instructions::collect_rewards::handler(ctx, reward_index)
     }
 
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn swap_rewards<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
         instructions::swap_rewards::handler(ctx)
     }
 
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
-    }
-
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
-        instructions::rebalance::handler(ctx)
-    }
-
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn set_market_rewards(
-        ctx: Context<SetMarketRewards>,
-        market_rewards: MarketRewardsInfoInput,
-    ) -> Result<()> {
-        instructions::set_market_rewards::handler(ctx, market_rewards)
-    }
-
-    #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn set_vault_fee(ctx: Context<SetVaultFee>, fee: u64) -> Result<()> {
-        instructions::set_vault_fee::handler(ctx, fee)
     }
 }
 

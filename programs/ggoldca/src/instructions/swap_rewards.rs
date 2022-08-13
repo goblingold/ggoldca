@@ -22,7 +22,6 @@ pub struct SwapEvent {
 
 #[derive(Accounts)]
 pub struct SwapRewards<'info> {
-    pub user_signer: Signer<'info>,
     #[account(
         mut,
         seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],

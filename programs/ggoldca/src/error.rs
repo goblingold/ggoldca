@@ -26,8 +26,10 @@ pub enum ErrorCode {
     PositionAlreadyOpened,
     #[msg("Position limit reached")]
     PositionLimitReached,
-    #[msg("Position does not exist or is not active")]
+    #[msg("Position is not active")]
     PositionNotActive,
+    #[msg("Position does not exist")]
+    PositionNonExistence,
 
     #[msg("Not enough fees generated yet")]
     NotEnoughFees,

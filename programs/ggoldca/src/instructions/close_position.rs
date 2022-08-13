@@ -23,7 +23,7 @@ pub struct ClosePosition<'info> {
     pub whirlpool_program_id: AccountInfo<'info>,
     #[account(
         mut,
-        constraint = vault_account.position_address_exists(position.key()) @ ErrorCode::PositionNotActive
+        constraint = vault_account.position_address_exists(position.key()) @ ErrorCode::PositionNonExistence
     )]
     /// CHECK: whirlpool cpi
     pub position: AccountInfo<'info>,

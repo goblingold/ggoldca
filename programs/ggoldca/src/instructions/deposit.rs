@@ -43,7 +43,6 @@ pub struct DepositWithdraw<'info> {
         associated_token::authority = vault_account,
     )]
     pub vault_input_token_b_account: Box<Account<'info, TokenAccount>>,
-
     #[account(
         mut,
         token::authority = user_signer.key()
@@ -51,12 +50,14 @@ pub struct DepositWithdraw<'info> {
     pub user_lp_token_account: Account<'info, TokenAccount>,
     #[account(
         mut,
-        token::authority = user_signer.key()
+        token::authority = user_signer.key(),
+        token::mint = vault_account.input_token_a_mint_pubkey,
     )]
     pub user_token_a_account: Account<'info, TokenAccount>,
     #[account(
         mut,
-        token::authority = user_signer.key()
+        token::authority = user_signer.key(),
+        token::mint = vault_account.input_token_b_mint_pubkey,
     )]
     pub user_token_b_account: Account<'info, TokenAccount>,
 
@@ -64,7 +65,7 @@ pub struct DepositWithdraw<'info> {
     /// CHECK: address is checked
     pub whirlpool_program_id: AccountInfo<'info>,
     #[account(
-        //TODO first constraint redundant?
+        // Redundant check. Never bad an extra check :)
         constraint = position.whirlpool.key() == vault_account.whirlpool_id.key(),
         constraint = position.position.key() == vault_account.active_position_key() @ ErrorCode::PositionNotActive,
     )]

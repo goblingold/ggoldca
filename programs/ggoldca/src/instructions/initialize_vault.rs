@@ -53,8 +53,7 @@ pub struct InitializeVault<'info> {
     #[account(
         init,
         payer = user_signer,
-        // TODO check decimals
-        mint::decimals = input_token_a_mint_address.decimals,
+        mint::decimals = 6,
         mint::authority = vault_account.key(),
         seeds = [VAULT_LP_TOKEN_MINT_SEED, vault_account.key().as_ref()],
         bump
