@@ -1,8 +1,5 @@
 use crate::error::ErrorCode;
-use crate::state::{
-    Bumps, InitVaultAccountParams, MarketRewards, MarketRewardsInfo, VaultAccount,
-    NUM_MARKET_REWARDS,
-};
+use crate::state::{Bumps, InitVaultAccountParams, MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
@@ -94,7 +91,8 @@ pub fn handler(
     // Fee can't be more than 100%
     require!(fee <= FEE_SCALE, ErrorCode::InvalidFee);
 
-    let mut market_rewards_info: [MarketRewardsInfo; NUM_MARKET_REWARDS] = Default::default();
+    let mut market_rewards_info: [MarketRewardsInfo; whirlpool::state::whirlpool::NUM_REWARDS] =
+        Default::default();
     market_rewards_input.iter().enumerate().for_each(|(i, x)| {
         market_rewards_info[i] = MarketRewardsInfo {
             rewards_mint: reward_infos[i].mint,
