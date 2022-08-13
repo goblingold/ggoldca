@@ -19,6 +19,8 @@ pub enum ErrorCode {
 
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
+    #[msg("Invalid reward token mint pubkey")]
+    InvalidRewardMint,
 
     #[msg("Position already opened")]
     PositionAlreadyOpened,
