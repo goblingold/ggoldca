@@ -102,8 +102,10 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
 
     let amount_before = ctx.accounts.vault_rewards_token_account.amount;
 
+    let has_zero_liquidity = ctx.accounts.position.liquidity()? == 0;
+
     // ORCA doesn't allow to update the fees and rewards for a position with zero liquidity
-    if ctx.accounts.position.liquidity()? > 0 {
+    if !has_zero_liquidity {
         whirlpool::cpi::update_fees_and_rewards(ctx.accounts.update_fees_and_rewards_ctx())?;
     }
     whirlpool::cpi::collect_reward(
@@ -117,7 +119,10 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let amount_increase = amount_after.safe_sub(amount_before)?;
 
     if ctx.accounts.vault_account.fee > 0 {
-        require!(amount_increase > FEE_SCALE, ErrorCode::NotEnoughRewards);
+        // skip the check in order to be able to claim all pending rewards & close the position
+        if !has_zero_liquidity {
+            require!(amount_increase > FEE_SCALE, ErrorCode::NotEnoughRewards);
+        }
 
         let treasury_fee =
             amount_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
