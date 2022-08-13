@@ -1,8 +1,10 @@
 use crate::error::ErrorCode;
-use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
+
+use super::MarketRewardsInfoInput;
 
 #[derive(Accounts)]
 pub struct SetMarketRewards<'info> {
@@ -10,7 +12,7 @@ pub struct SetMarketRewards<'info> {
     pub user_signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, vault_account.whirlpool_id.key().as_ref()],
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -22,8 +24,7 @@ pub struct SetMarketRewards<'info> {
 
 pub fn handler(
     ctx: Context<SetMarketRewards>,
-    is_destination_token_a: bool,
-    id: MarketRewards,
+    market_rewards: MarketRewardsInfoInput,
 ) -> Result<()> {
     // Ensure the whirlpool has the right account data
     let reward_infos = {
@@ -43,8 +44,8 @@ pub fn handler(
 
     ctx.accounts.vault_account.market_rewards[index] = MarketRewardsInfo {
         rewards_mint: ctx.accounts.rewards_mint.key(),
-        is_destination_token_a,
-        id,
+        is_destination_token_a: market_rewards.is_destination_token_a,
+        id: market_rewards.id,
     };
 
     Ok(())
