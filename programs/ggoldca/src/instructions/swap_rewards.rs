@@ -31,9 +31,7 @@ pub struct SwapRewards<'info> {
     pub vault_account: Box<Account<'info, VaultAccount>>,
     #[account(
         mut,
-        // TODO ensure this is a reward account. Other checks? Check mints from deserialized wirlpool?
-        constraint = vault_rewards_token_account.mint != vault_account.input_token_a_mint_pubkey
-                  && vault_rewards_token_account.mint != vault_account.input_token_b_mint_pubkey,
+        constraint = vault_account.market_rewards.iter().any(|info| info.rewards_mint == vault_rewards_token_account.mint),
         associated_token::mint = vault_rewards_token_account.mint,
         associated_token::authority = vault_account,
     )]
