@@ -1,7 +1,5 @@
 use anchor_lang::prelude::*;
 
-use crate::instructions::swap_rewards::MarketRewards;
-
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
 /// Number of rewards markets
@@ -159,4 +157,17 @@ pub struct MarketRewardsInfo {
 
 impl MarketRewardsInfo {
     pub const SIZE: usize = 32 + 1 + 2;
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
+#[repr(u8)]
+pub enum MarketRewards {
+    OrcaV2,
+    Whirlpool,
+}
+
+impl Default for MarketRewards {
+    fn default() -> Self {
+        MarketRewards::OrcaV2
+    }
 }

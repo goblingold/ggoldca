@@ -1,13 +1,12 @@
 use crate::error::ErrorCode;
 use crate::state::{
-    Bumps, InitVaultAccountParams, MarketRewardsInfo, VaultAccount, NUM_MARKET_REWARDS,
+    Bumps, InitVaultAccountParams, MarketRewards, MarketRewardsInfo, VaultAccount,
+    NUM_MARKET_REWARDS,
 };
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-
-use super::swap_rewards::MarketRewards;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub struct MarketRewardsInfoInput {

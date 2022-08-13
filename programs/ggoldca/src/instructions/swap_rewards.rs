@@ -2,7 +2,7 @@ use crate::error::ErrorCode;
 use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
-use crate::state::{MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::{
@@ -18,19 +18,6 @@ pub struct SwapEvent {
     pub amount_in: u64,
     pub mint_out: Pubkey,
     pub amount_out: u64,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Copy, Clone, Debug)]
-#[repr(u8)]
-pub enum MarketRewards {
-    OrcaV2,
-    OrcaWhirlpool,
-}
-
-impl Default for MarketRewards {
-    fn default() -> Self {
-        MarketRewards::OrcaV2
-    }
 }
 
 #[derive(Accounts)]
@@ -151,7 +138,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
 
     match market_rewards.id {
         MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
-        MarketRewards::OrcaWhirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
+        MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;
