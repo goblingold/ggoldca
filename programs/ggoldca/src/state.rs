@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::instructions::swap_rewards::MarketRewards;
+use crate::instructions::{swap_rewards::MarketRewards, MarketRewardsInfoInput};
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
@@ -65,7 +65,6 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             fee: params.fee,
-            market_rewards: params.market_rewards_infos.to_vec(),
             ..Self::default()
         }
     }
@@ -117,8 +116,8 @@ pub struct InitVaultAccountParams {
 
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
-    /// Infos for market rewards swaps
-    pub market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+    /// Market rewards
+    pub market_rewards: Vec<MarketRewardsInfoInput>,
 }
 
 /// PDA bump seeds

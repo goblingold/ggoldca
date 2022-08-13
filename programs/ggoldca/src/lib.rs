@@ -1,4 +1,3 @@
-use crate::state::{MarketRewardsInfo, NUM_MARKET_REWARDS};
 use anchor_lang::prelude::*;
 use error::ErrorCode;
 use instructions::*;
@@ -38,9 +37,9 @@ pub mod ggoldca {
         ctx: Context<InitializeVault>,
         vault_id: u8,
         fee: u64,
-        market_rewards_infos: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+        market_rewards: Vec<MarketRewardsInfoInput>,
     ) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, vault_id, fee, market_rewards_infos)
+        instructions::initialize_vault::handler(ctx, vault_id, fee, market_rewards)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
