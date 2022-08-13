@@ -43,6 +43,9 @@ pub enum ErrorCode {
     #[msg("Invalid Market Rewards")]
     InvalidMarketRewards,
 
+    #[msg("Invalid swap program ID")]
+    InvalidSwapProgramId,
+
     #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,
     #[msg("whirlpool: overflow while computing liquidity to token deltas")]

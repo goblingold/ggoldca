@@ -183,6 +183,10 @@ fn swap_orca_cpi<'info>(
     amount_to_swap: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 6, InvalidNumberOfAccounts);
+    require!(
+        ctx.accounts.swap_program.key() == orca_swap_v2::ID,
+        ErrorCode::InvalidSwapProgramId
+    );
 
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
@@ -203,6 +207,10 @@ fn swap_whirlpool_cpi<'info>(
     amount_to_swap: u64,
 ) -> Result<()> {
     require!(ctx.remaining_accounts.len() == 7, InvalidNumberOfAccounts);
+    require!(
+        ctx.accounts.swap_program.key() == whirlpool::ID,
+        ErrorCode::InvalidSwapProgramId
+    );
 
     let rewards_acc_is_token_a = {
         let acc_data_slice: &[u8] = &ctx.remaining_accounts[0].try_borrow_data()?;
