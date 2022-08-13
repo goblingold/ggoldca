@@ -2,8 +2,6 @@ use anchor_lang::prelude::*;
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
-/// Number of rewards markets
-pub const NUM_MARKET_REWARDS: usize = 3;
 
 /// Strategy vault account
 #[account]
@@ -35,7 +33,7 @@ pub struct VaultAccount {
     pub _padding: [u64; 10],
 
     /// The market where to sell the rewards
-    pub market_rewards: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+    pub market_rewards: [MarketRewardsInfo; whirlpool::state::whirlpool::NUM_REWARDS],
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
@@ -52,7 +50,7 @@ impl VaultAccount {
         + 8
         + 8 * 10
         + 4
-        + NUM_MARKET_REWARDS * MarketRewardsInfo::SIZE
+        + whirlpool::state::whirlpool::NUM_REWARDS * MarketRewardsInfo::SIZE
         + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Initialize a new vault
@@ -116,7 +114,7 @@ pub struct InitVaultAccountParams {
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
     /// Market rewards infos
-    pub market_rewards_info: [MarketRewardsInfo; NUM_MARKET_REWARDS],
+    pub market_rewards_info: [MarketRewardsInfo; whirlpool::state::whirlpool::NUM_REWARDS],
 }
 
 /// PDA bump seeds
