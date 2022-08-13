@@ -162,10 +162,11 @@ impl MarketRewardsInfo {
 pub enum MarketRewards {
     OrcaV2,
     Whirlpool,
+    NotSet,
 }
 
 impl Default for MarketRewards {
     fn default() -> Self {
-        MarketRewards::OrcaV2
+        MarketRewards::NotSet
     }
 }
