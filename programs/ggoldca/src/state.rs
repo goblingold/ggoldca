@@ -196,6 +196,10 @@ impl MarketRewardsInfo {
                         ErrorCode::InvalidMarketRewardsInputSwap,
                     );
                 }
+                require!(
+                    destination_mint == token_a_mint || destination_mint == token_b_mint,
+                    ErrorCode::InvalidDestinationAccount
+                );
 
                 require!(
                     self.min_amount_out > 0,
