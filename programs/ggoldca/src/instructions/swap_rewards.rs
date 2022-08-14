@@ -31,7 +31,7 @@ pub struct SwapRewards<'info> {
     pub vault_account: Box<Account<'info, VaultAccount>>,
     #[account(
         mut,
-        constraint = vault_account.market_rewards.iter().any(|info| info.rewards_mint == vault_rewards_token_account.mint),
+        constraint = vault_account.market_rewards.iter().any(|info| info.rewards_mint == vault_rewards_token_account.mint) @ ErrorCode::SwapNotSet,
         associated_token::mint = vault_rewards_token_account.mint,
         associated_token::authority = vault_account,
     )]
