@@ -119,7 +119,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
 
     require!(
         market_rewards.destination_token_account
-            == ctx.accounts.vault_destination_token_account.mint,
+            == ctx.accounts.vault_destination_token_account.key(),
         ErrorCode::InvalidSwap
     );
 
