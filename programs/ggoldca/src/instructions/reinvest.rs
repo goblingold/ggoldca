@@ -1,5 +1,5 @@
 use crate::error::ErrorCode;
-use crate::instructions::SwapEvent;
+use crate::instructions::swap_rewards::SwapEvent;
 use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};

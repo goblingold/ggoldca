@@ -1,9 +1,16 @@
-use super::MarketRewardsInfoInput;
 use crate::error::ErrorCode;
-use crate::state::{MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token::{Mint, TokenAccount};
+
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
+pub struct MarketRewardsInfoInput {
+    /// Id of market associated
+    pub id: MarketRewards,
+    /// Minimum number of lamports to receive during swap
+    pub min_amount_out: u64,
+}
 
 #[derive(Accounts)]
 pub struct SetMarketRewards<'info> {
@@ -20,6 +27,7 @@ pub struct SetMarketRewards<'info> {
     /// CHECK: owner and account data is checked
     pub whirlpool: AccountInfo<'info>,
     pub rewards_mint: Account<'info, Mint>,
+    pub destination_token_account: Account<'info, TokenAccount>,
 }
 
 pub fn handler(
@@ -43,13 +51,14 @@ pub fn handler(
         .ok_or_else(|| error!(ErrorCode::InvalidRewardMint))?;
 
     let market = MarketRewardsInfo {
-        rewards_mint: ctx.accounts.rewards_mint.key(),
         id: market_rewards.id,
-        is_destination_token_a: market_rewards.is_destination_token_a,
+        rewards_mint: ctx.accounts.rewards_mint.key(),
+        destination_token_account: ctx.accounts.destination_token_account.key(),
         min_amount_out: market_rewards.min_amount_out,
     };
 
     market.validate(
+        ctx.accounts.destination_token_account.mint,
         ctx.accounts.vault_account.input_token_a_mint_pubkey,
         ctx.accounts.vault_account.input_token_b_mint_pubkey,
     )?;

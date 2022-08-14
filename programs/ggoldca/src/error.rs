@@ -50,15 +50,23 @@ pub enum ErrorCode {
     #[msg("Invalid Market Rewards")]
     InvalidMarketRewards,
 
+    #[msg("Market rewards input wrong transfer account")]
+    InvalidMarketRewardsInputTransferAcc,
     #[msg("Market rewards input zero min_amount_out not allowed")]
     InvalidMarketRewardsInputZeroAmount,
     #[msg("Market rewards input swap of input tokens not allowed")]
     InvalidMarketRewardsInputSwap,
 
+    #[msg("Swap market not set. Use instead transfer rewards")]
+    InvalidSwapMarket,
     #[msg("Invalid swap program ID")]
     InvalidSwapProgramId,
     #[msg("Swap is not set for the current rewards")]
     SwapNotSet,
+    #[msg("Transfer is not set for the current rewards")]
+    TransferNotSet,
+    #[msg("Invalid destination token account")]
+    InvalidDestinationAccount,
 
     #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,
