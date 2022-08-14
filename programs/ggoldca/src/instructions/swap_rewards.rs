@@ -2,7 +2,7 @@ use crate::error::ErrorCode;
 use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
-use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewardsInfo, RewardsAction, VaultAccount};
 use crate::VAULT_ACCOUNT_SEED;
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::{
@@ -134,10 +134,10 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
     let min_amount_out = market_rewards.min_amount_out;
 
-    match market_rewards.id {
-        MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap, min_amount_out),
-        MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap, min_amount_out),
-        MarketRewards::NotSet => Err(ErrorCode::SwapNotSet.into()),
+    match market_rewards.action {
+        RewardsAction::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap, min_amount_out),
+        RewardsAction::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap, min_amount_out),
+        _ => Err(ErrorCode::SwapNotSet.into()),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;

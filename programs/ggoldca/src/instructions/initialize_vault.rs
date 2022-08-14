@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
 use crate::state::{
-    Bumps, InitVaultAccountParams, MarketRewards, MarketRewardsInfo, VaultAccount,
+    Bumps, InitVaultAccountParams, RewardsAction, MarketRewardsInfo, VaultAccount,
     WHIRLPOOL_NUM_REWARDS,
 };
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
@@ -10,8 +10,8 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub struct MarketRewardsInfoInput {
-    /// Id of market associated
-    pub id: MarketRewards,
+    /// Action to perform with the rewards
+    pub action: RewardsAction,
     /// Mint output of the swap matches whirpool's token_a
     pub is_destination_token_a: bool,
     /// Minimum number of lamports to receive during swap
@@ -114,7 +114,7 @@ pub fn handler(
 
         let market = MarketRewardsInfo {
             rewards_mint,
-            id: input.id,
+            action: input.action,
             is_destination_token_a: input.is_destination_token_a,
             min_amount_out: input.min_amount_out,
         };

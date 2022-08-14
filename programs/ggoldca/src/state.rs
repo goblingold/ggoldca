@@ -149,10 +149,10 @@ impl PositionInfo {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub struct MarketRewardsInfo {
+    /// Action to perform with the rewards
+    pub action: RewardsAction,
     /// Pubkey of the rewards token mint
     pub rewards_mint: Pubkey,
-    /// Id of market associated
-    pub id: MarketRewards,
     /// Mint output of the swap matches whirpool's token_a
     pub is_destination_token_a: bool,
     /// Minimum number of lamports to receive during swap
@@ -163,13 +163,17 @@ impl MarketRewardsInfo {
     pub const SIZE: usize = 32 + 1 + 2;
 
     pub fn validate(&self, token_a_mint: Pubkey, token_b_mint: Pubkey) -> Result<()> {
-        if self.rewards_mint != Pubkey::default() {
-            if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
-                require!(
-                    self.id == MarketRewards::NotSet,
-                    ErrorCode::InvalidMarketRewardsInputSwap,
-                );
-            }
+        let is_swap =
+            self.action == RewardsAction::OrcaV2 || self.action == RewardsAction::Whirlpool;
+
+        if self.rewards_mint != Pubkey::default() && is_swap {
+            let is_swap_input_tokens =
+                self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint;
+
+            require!(
+                !is_swap_input_tokens,
+                ErrorCode::InvalidMarketRewardsInputSwap,
+            );
 
             require!(
                 self.min_amount_out > 0,
@@ -183,14 +187,15 @@ impl MarketRewardsInfo {
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Eq, Copy, Clone, Debug)]
 #[repr(u8)]
-pub enum MarketRewards {
+pub enum RewardsAction {
     NotSet,
+    Transfer,
     OrcaV2,
     Whirlpool,
 }
 
-impl Default for MarketRewards {
+impl Default for RewardsAction {
     fn default() -> Self {
-        MarketRewards::NotSet
+        RewardsAction::NotSet
     }
 }

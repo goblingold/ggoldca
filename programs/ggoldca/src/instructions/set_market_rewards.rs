@@ -43,7 +43,7 @@ pub fn handler(
 
     let market = MarketRewardsInfo {
         rewards_mint: ctx.accounts.rewards_mint.key(),
-        id: market_rewards.id,
+        action: market_rewards.action,
         is_destination_token_a: market_rewards.is_destination_token_a,
         min_amount_out: market_rewards.min_amount_out,
     };
