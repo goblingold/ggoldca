@@ -50,6 +50,8 @@ pub enum ErrorCode {
     #[msg("Invalid Market Rewards")]
     InvalidMarketRewards,
 
+    #[msg("Market rewards input wrong transfer account")]
+    InvalidMarketRewardsInputTransferAcc,
     #[msg("Market rewards input zero min_amount_out not allowed")]
     InvalidMarketRewardsInputZeroAmount,
     #[msg("Market rewards input swap of input tokens not allowed")]

@@ -52,6 +52,7 @@ pub fn handler(
     };
 
     market.validate(
+        ctx.accounts.destination_token_account.mint,
         ctx.accounts.vault_account.input_token_a_mint_pubkey,
         ctx.accounts.vault_account.input_token_b_mint_pubkey,
     )?;
