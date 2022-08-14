@@ -1,0 +1,71 @@
+extends = ["../../Anchor.toml"]
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/swap_rewards/**/*.ts --exit"
+
+[test.validator]
+url = "https://api.mainnet-beta.solana.com"
+
+# USDC_ata
+[[test.validator.account]]
+address = "HeXnCGvZ4UKKwe4Q6oHShCuihurF5nqPoYAr643K6R6M"
+filename = "../accounts/USDC.json"
+# USH_ata
+[[test.validator.account]]
+address = "6Lttap6DLMGad1DJ2dT4vNusBx9e8XG59QRgopXs5sjb"
+filename = "../accounts/USH.json"
+# ORCA_ata
+[[test.validator.account]]
+address = "4B5LLKk12BCYm1JEFUWqibRAiEXHKZtQE763JMaeVcLG"
+filename = "../accounts/ORCA.json"
+# HDG_ata
+[[test.validator.account]]
+address = "2iuH2T6BBWfkY31gNqB5SfAaDr6DmM8bAf7X98HikSxW"
+filename = "../accounts/HDG.json"
+
+# USDC mint
+[[test.validator.clone]]
+address = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+# USH mint
+[[test.validator.clone]]
+address = "9iLH8T7zoWhY7sBmj1WK9ENbWdS1nL8n9wAxaeRitTa6"
+# ORCA mint
+[[test.validator.clone]]
+address = "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE"
+# HDG mint
+[[test.validator.clone]]
+address = "5PmpMzWjraf3kSsGEKtqdUsCoLhptg4yriZ17LKKdBBy"
+
+# whirlpool program
+[[test.validator.clone]]
+address = "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
+# orca_swap_v2 program
+[[test.validator.clone]]
+address = "9W959DqEETiGZocYWCQPaJ6sBmUzgfxXfqGeTEdp3aQP"
+
+[[test.validator.clone]]
+address = "2p7nYbtPBgtmY69NsE8DAW6szpRJn7tQvDnqvoEWQvjY"
+[[test.validator.clone]]
+address = "3fr1AhdiAmWLeNrS24CMoAu9pPgbzVhwLtJ6QUPmw2ob"
+[[test.validator.clone]]
+address = "5CCv2tHWNpgJsYDizoufremEcxwy18fMdcRm4ni365E7"
+[[test.validator.clone]]
+address = "6UczejMUv1tzdvUzKpULKHxrK9sqLm8edR1v9jinVWm9"
+[[test.validator.clone]]
+address = "7CXZED4jfRp3qdHB9Py3up6v1C4UhHofFvfT6RXbJLRN"
+[[test.validator.clone]]
+address = "9vYWHBPz817wJdQpE8u3h8UoY3sZ16ZXdCcvLB7jY4Dj"
+[[test.validator.clone]]
+address = "ApLVWYdXzjoDhBHeRx6SnbFWv4MYjFMih5FijDQUJk5R"
+[[test.validator.clone]]
+address = "AVxMdgRUUt28vrMjvq1jR2CxdcRtA2sqBdotrjrgNCiy"
+[[test.validator.clone]]
+address = "BiHNmFgdwcGfCTA4zogjAdf2QcDceZCWLBe42FY6aAEh"
+[[test.validator.clone]]
+address = "DoPTksr4AmVSRYqvcP5nUcV1CuWgnHT6gaJsyJEY6K7d"
+[[test.validator.clone]]
+address = "Dy6ktGLX9So2jwUAGzJA811b2XxXVfP4NfRvgvAUXkZ5"
+[[test.validator.clone]]
+address = "HZUXGiKoFMqEaBRvJZJs4ueFRdK8zrVMb9akHSatNt64"
+[[test.validator.clone]]
+address = "n8Mpu28RjeYD7oUX3LG1tPxzhRZh3YYLRSHcHRdS3Zx"

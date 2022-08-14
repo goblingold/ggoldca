@@ -369,9 +369,8 @@ describe("ggoldca", () => {
   });
 
   it("Swap rewards", async () => {
-    const [{ vaultAccount }, position, poolData] = await Promise.all([
+    const [{ vaultAccount }, poolData] = await Promise.all([
       ggClient.pdaAccounts.getVaultKeys(vaultId),
-      ggClient.pdaAccounts.getActivePosition(vaultId),
       ggClient.fetcher.getWhirlpoolData(vaultId.whirlpool),
     ]);
 
