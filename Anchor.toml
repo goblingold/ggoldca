@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-ggoldca = "ECzqPRCK7S7jXeNWoc3QrYH6yWQkcQGpGR2RWqRQ9e9P"
+ggoldca = "NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT"
 
 [registry]
 url = "https://anchor.projectserum.com"

@@ -9,7 +9,7 @@ mod macros;
 mod math;
 mod state;
 
-declare_id!("ECzqPRCK7S7jXeNWoc3QrYH6yWQkcQGpGR2RWqRQ9e9P");
+declare_id!("NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT");
 
 // DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
 const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
