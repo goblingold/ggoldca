@@ -38,12 +38,14 @@ describe("swapRewards", () => {
   it("Initialize vault", async () => {
     const vecMarketRewards = [
       {
-        isDestinationTokenA: false,
         id: { whirlpool: {} },
+        isDestinationTokenA: false,
+        minAmountOut: new anchor.BN(1),
       },
       {
-        isDestinationTokenA: false,
         id: { orcaV2: {} },
+        isDestinationTokenA: false,
+        minAmountOut: new anchor.BN(1),
       },
     ];
 
