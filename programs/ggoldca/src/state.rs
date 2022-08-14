@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use crate::VAULT_VERSION;
+
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
 
@@ -61,7 +63,7 @@ impl VaultAccount {
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
         Self {
-            version: 1,
+            version: VAULT_VERSION,
             id: params.id,
             bumps: params.bumps,
             whirlpool_id: params.whirlpool_id,
