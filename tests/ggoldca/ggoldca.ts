@@ -218,7 +218,7 @@ describe("ggoldca", () => {
   });
 
   it("Try collect fees", async () => {
-    const ix = await ggClient.collectFeesIx({ userSigner, position, vaultId });
+    const ix = await ggClient.collectFeesIx({ vaultId, position });
     const tx = new anchor.web3.Transaction().add(ix);
 
     try {
@@ -235,11 +235,7 @@ describe("ggoldca", () => {
   });
 
   it("Try collect rewards", async () => {
-    const ixs = await ggClient.collectRewardsIxs({
-      userSigner,
-      position,
-      vaultId,
-    });
+    const ixs = await ggClient.collectRewardsIxs({ vaultId, position });
     const tx = ixs.reduce(
       (tx, ix) => tx.add(ix),
       new anchor.web3.Transaction()
@@ -253,7 +249,7 @@ describe("ggoldca", () => {
         .filter((err) => err.name == "NotEnoughRewards")
         .map((err) => err.code)[0];
 
-      assert.include(err.toString(), "6012");
+      assert.include(err.toString(), errNumber);
       console.log("Not enought rewards generated");
     }
   });
@@ -291,7 +287,7 @@ describe("ggoldca", () => {
       .add(COMPUTE_BUDGET_IX)
       .add(transferAIx)
       .add(transferBIx)
-      .add(await ggClient.reinvestIx({ userSigner, vaultId }));
+      .add(await ggClient.reinvestIx({ vaultId }));
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("Reinvest", txSig);
@@ -352,7 +348,6 @@ describe("ggoldca", () => {
         await program.methods
           .reinvest()
           .accounts({
-            userSigner,
             vaultAccount,
             vaultLpTokenMintPubkey,
             vaultInputTokenAAccount,
@@ -407,7 +402,7 @@ describe("ggoldca", () => {
       )
     );
 
-    const ixs = await ggClient.swapRewardsIxs({ userSigner, vaultId });
+    const ixs = await ggClient.swapRewardsIxs({ vaultId });
 
     const tx = [...ixsTransfer, ...ixs].reduce(
       (acc, ix) => acc.add(ix),
@@ -439,7 +434,7 @@ describe("ggoldca", () => {
   });
 
   it("Failing swap in invalid market", async () => {
-    const ixs = await ggClient.swapRewardsIxs({ userSigner, vaultId });
+    const ixs = await ggClient.swapRewardsIxs({ vaultId });
     const tx = new anchor.web3.Transaction().add(ixs[0]);
 
     try {
@@ -460,13 +455,11 @@ describe("ggoldca", () => {
 
     // Try claim pending fees/rewards
     const ixFees = await ggClient.collectFeesIx({
-      userSigner,
       position,
       vaultId,
     });
 
     const ixRewards = await ggClient.collectRewardsIxs({
-      userSigner,
       position,
       vaultId,
     });
