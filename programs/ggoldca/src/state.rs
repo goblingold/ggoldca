@@ -185,6 +185,10 @@ impl MarketRewardsInfo {
             MarketRewards::NotSet => {}
             MarketRewards::Transfer => {
                 require!(
+                    self.rewards_mint != token_a_mint && self.rewards_mint != token_b_mint,
+                    ErrorCode::MarketInvalidMint,
+                );
+                require!(
                     self.rewards_mint == destination_mint,
                     ErrorCode::MarketInvalidDestination
                 )
@@ -192,7 +196,7 @@ impl MarketRewardsInfo {
             _ => {
                 require!(
                     self.rewards_mint != token_a_mint && self.rewards_mint != token_b_mint,
-                    ErrorCode::MarketInvalidSwapMint,
+                    ErrorCode::MarketInvalidMint,
                 );
 
                 require!(

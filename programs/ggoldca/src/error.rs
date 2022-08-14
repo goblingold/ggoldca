@@ -25,8 +25,8 @@ pub enum ErrorCode {
 
     #[msg("Market rewards input invalid destination account mint")]
     MarketInvalidDestination,
-    #[msg("Market rewards input swap of input tokens not allowed")]
-    MarketInvalidSwapMint,
+    #[msg("Market rewards input tokens not allowed")]
+    MarketInvalidMint,
     #[msg("Market rewards input zero min_amount_out not allowed")]
     MarketInvalidZeroAmount,
 
