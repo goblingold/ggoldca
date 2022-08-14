@@ -10,10 +10,12 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub struct MarketRewardsInfoInput {
-    /// Pubkey of the mint output to swap the rewards for
-    pub is_destination_token_a: bool,
     /// Id of market associated
     pub id: MarketRewards,
+    /// Mint output of the swap matches whirpool's token_a
+    pub is_destination_token_a: bool,
+    /// Minimum number of lamports to receive during swap
+    pub min_amount_out: u64,
 }
 
 #[derive(Accounts)]
@@ -90,17 +92,36 @@ pub fn handler(
         ctx.accounts.input_token_b_mint_address.key() == token_mint_b,
         ErrorCode::InvalidInputMint
     );
+
     // Fee can't be more than 100%
     require!(fee <= FEE_SCALE, ErrorCode::InvalidFee);
 
+    let num_whirlpool_rewards = reward_infos
+        .iter()
+        .filter(|ri| ri.mint != Pubkey::default())
+        .count();
+
+    require!(
+        market_rewards_input.len() == num_whirlpool_rewards,
+        ErrorCode::InvalidMarketRewards
+    );
+
     let mut market_rewards_info: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS] = Default::default();
-    market_rewards_input.iter().enumerate().for_each(|(i, x)| {
-        market_rewards_info[i] = MarketRewardsInfo {
-            rewards_mint: reward_infos[i].mint,
-            is_destination_token_a: x.is_destination_token_a,
-            id: x.id,
-        }
-    });
+
+    for i in 0..market_rewards_input.len() {
+        let input = market_rewards_input[i];
+        let rewards_mint = reward_infos[i].mint;
+
+        let market = MarketRewardsInfo {
+            rewards_mint,
+            id: input.id,
+            is_destination_token_a: input.is_destination_token_a,
+            min_amount_out: input.min_amount_out,
+        };
+
+        market.validate(token_mint_a, token_mint_b)?;
+        market_rewards_info[i] = market;
+    }
 
     ctx.accounts
         .vault_account

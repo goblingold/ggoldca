@@ -108,9 +108,6 @@ impl<'info> SwapRewards<'info> {
 }
 
 pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
-    let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
-    let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
-
     let market_rewards: &MarketRewardsInfo = ctx
         .accounts
         .vault_account
@@ -133,9 +130,13 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         );
     };
 
+    let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
+    let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
+    let min_amount_out = market_rewards.min_amount_out;
+
     match market_rewards.id {
-        MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap),
-        MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap),
+        MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap, min_amount_out),
+        MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap, min_amount_out),
         MarketRewards::NotSet => Err(ErrorCode::SwapNotSet.into()),
     }?;
 
@@ -166,6 +167,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
 fn swap_orca_cpi<'info>(
     ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>,
     amount_to_swap: u64,
+    min_amount_out: u64,
 ) -> Result<()> {
     require!(
         ctx.accounts.swap_program.key() == orca_swap_v2::ID,
@@ -181,7 +183,7 @@ fn swap_orca_cpi<'info>(
             .swap_orca_ctx(ctx.remaining_accounts)
             .with_signer(signer),
         amount_to_swap,
-        1,
+        min_amount_out,
     )?;
 
     Ok(())
@@ -190,6 +192,7 @@ fn swap_orca_cpi<'info>(
 fn swap_whirlpool_cpi<'info>(
     ctx: &Context<'_, '_, '_, 'info, SwapRewards<'info>>,
     amount_to_swap: u64,
+    min_amount_out: u64,
 ) -> Result<()> {
     require!(
         ctx.accounts.swap_program.key() == whirlpool::ID,
@@ -220,7 +223,7 @@ fn swap_whirlpool_cpi<'info>(
             .whirlpool_swap_ctx(ctx.remaining_accounts, rewards_acc_is_token_a)
             .with_signer(signer),
         amount_to_swap,
-        1,
+        min_amount_out,
         sqrt_price_limit,
         true,
         is_swap_from_a_to_b,
