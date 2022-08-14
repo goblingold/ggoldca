@@ -105,7 +105,7 @@ pub fn handler(
     ctx.accounts
         .vault_account
         .set_inner(VaultAccount::init(InitVaultAccountParams {
-            id: id,
+            id,
             bumps: Bumps {
                 vault: *ctx.bumps.get("vault_account").unwrap(),
                 lp_token_mint: *ctx.bumps.get("vault_lp_token_mint_pubkey").unwrap(),
