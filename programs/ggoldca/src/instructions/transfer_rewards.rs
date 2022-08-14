@@ -55,7 +55,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -
         .ok_or(ErrorCode::InvalidMarketRewards)?;
 
     require!(
-        market_rewards.id == MarketRewards::TransferRewards,
+        market_rewards.id == MarketRewards::Transfer,
         ErrorCode::InvalidDestinationAccount
     );
     require!(

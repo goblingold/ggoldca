@@ -196,9 +196,9 @@ impl MarketRewardsInfo {
 #[repr(u8)]
 pub enum MarketRewards {
     NotSet,
+    Transfer,
     OrcaV2,
     Whirlpool,
-    TransferRewards,
 }
 
 impl MarketRewards {
