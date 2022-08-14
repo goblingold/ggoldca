@@ -154,12 +154,14 @@ impl PositionInfo {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
 pub struct MarketRewardsInfo {
-    /// Pubkey of the rewards token mint
-    pub rewards_mint: Pubkey,
-    /// Pubkey of the mint output to swap the rewards for
-    pub is_destination_token_a: bool,
     /// Id of market associated
     pub id: MarketRewards,
+    /// Pubkey of the rewards token mint
+    pub rewards_mint: Pubkey,
+    /// Destination account
+    pub destination_token_account: Pubkey,
+    /// Pubkey of the mint output to swap the rewards for
+    pub is_destination_token_a: bool,
 }
 
 impl MarketRewardsInfo {
@@ -172,6 +174,7 @@ pub enum MarketRewards {
     NotSet,
     OrcaV2,
     Whirlpool,
+    TransferRewards
 }
 
 impl Default for MarketRewards {

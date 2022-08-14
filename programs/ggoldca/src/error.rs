@@ -54,6 +54,8 @@ pub enum ErrorCode {
     InvalidSwapProgramId,
     #[msg("Swap is not set for the current rewards")]
     SwapNotSet,
+    #[msg("Invalid destination token account")]
+    InvalidDestinationAccount,
 
     #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,
