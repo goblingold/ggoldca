@@ -30,6 +30,8 @@ pub enum ErrorCode {
     #[msg("Market rewards input zero min_amount_out not allowed")]
     MarketInvalidZeroAmount,
 
+    #[msg("LP amount must be greater than zero")]
+    ZeroLpAmount,
     #[msg("Exceeded token max")]
     ExceededTokenMax,
 
