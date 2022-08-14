@@ -61,8 +61,8 @@ impl VaultAccount {
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
         + MAX_POSITIONS * PositionInfo::SIZE;
 
-    /// Initialize a new vault
-    pub fn init(params: InitVaultAccountParams) -> Self {
+    /// Create a new vault
+    pub fn new(params: VaultAccountParams) -> Self {
         Self {
             version: VAULT_VERSION,
             id: params.id,
@@ -105,8 +105,8 @@ impl VaultAccount {
     }
 }
 
-/// Initialize a new vault
-pub struct InitVaultAccountParams {
+/// Create a new vault
+pub struct VaultAccountParams {
     /// Vault id
     pub id: u8,
 

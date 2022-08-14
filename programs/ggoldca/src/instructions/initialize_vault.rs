@@ -1,6 +1,6 @@
 use crate::error::ErrorCode;
 use crate::state::{
-    Bumps, InitVaultAccountParams, MarketRewards, MarketRewardsInfo, VaultAccount,
+    Bumps, MarketRewards, MarketRewardsInfo, VaultAccount, VaultAccountParams,
     WHIRLPOOL_NUM_REWARDS,
 };
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
@@ -125,7 +125,7 @@ pub fn handler(
 
     ctx.accounts
         .vault_account
-        .set_inner(VaultAccount::init(InitVaultAccountParams {
+        .set_inner(VaultAccount::new(VaultAccountParams {
             id,
             bumps: Bumps {
                 vault: *ctx.bumps.get("vault_account").unwrap(),
