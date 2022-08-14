@@ -9,7 +9,7 @@
     "@solana/spl-token-v2": "npm:@solana/spl-token@^0.2.0",
     "add": "^2.0.6",
     "decimal.js": "^10.3.1",
-    "ggoldca-sdk": "^0.0.9",
+    "ggoldca-sdk": "^0.0.10",
     "yarn": "^1.22.19"
   },
   "devDependencies": {
