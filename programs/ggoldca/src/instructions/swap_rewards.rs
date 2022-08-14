@@ -117,19 +117,11 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
         .ok_or(ErrorCode::InvalidMarketRewards)?;
 
-    if market_rewards.is_destination_token_a {
-        require!(
-            ctx.accounts.vault_account.input_token_a_mint_pubkey
-                == ctx.accounts.vault_destination_token_account.mint,
-            ErrorCode::InvalidSwap
-        );
-    } else {
-        require!(
-            ctx.accounts.vault_account.input_token_b_mint_pubkey
-                == ctx.accounts.vault_destination_token_account.mint,
-            ErrorCode::InvalidSwap
-        );
-    };
+    require!(
+        market_rewards.destination_token_account
+            == ctx.accounts.vault_destination_token_account.mint,
+        ErrorCode::InvalidSwap
+    );
 
     let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
     let amount_to_swap = ctx.accounts.vault_rewards_token_account.amount;
@@ -138,8 +130,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     match market_rewards.id {
         MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap, min_amount_out),
         MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap, min_amount_out),
-        MarketRewards::NotSet => Err(ErrorCode::SwapNotSet.into()),
-        MarketRewards::TransferRewards => Err(ErrorCode::InvalidSwapMarket.into()),
+        _ => Err(ErrorCode::SwapNotSet.into()),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;

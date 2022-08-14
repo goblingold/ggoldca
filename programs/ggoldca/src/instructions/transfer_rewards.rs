@@ -42,7 +42,7 @@ impl<'info> TransferRewards<'info> {
     }
 }
 
-pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -> Result<()> {
+pub fn handler(ctx: Context<TransferRewards>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
@@ -55,9 +55,10 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -
         .ok_or(ErrorCode::InvalidMarketRewards)?;
 
     require!(
-        market_rewards.id == MarketRewards::TransferRewards,
-        ErrorCode::InvalidDestinationAccount
+        market_rewards.id == MarketRewards::Transfer,
+        ErrorCode::TransferNotSet
     );
+
     require!(
         ctx.accounts.destination_token_account.key() == market_rewards.destination_token_account,
         ErrorCode::InvalidDestinationAccount

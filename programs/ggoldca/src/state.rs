@@ -164,8 +164,6 @@ pub struct MarketRewardsInfo {
     pub rewards_mint: Pubkey,
     /// Destination account
     pub destination_token_account: Pubkey,
-    /// Mint output of the swap matches whirpool's token_a
-    pub is_destination_token_a: bool,
     /// Minimum number of lamports to receive during swap
     pub min_amount_out: u64,
 }
@@ -173,20 +171,38 @@ pub struct MarketRewardsInfo {
 impl MarketRewardsInfo {
     pub const SIZE: usize = 32 + MarketRewards::SIZE + 1 + 8;
 
-    pub fn validate(&self, token_a_mint: Pubkey, token_b_mint: Pubkey) -> Result<()> {
-        if self.rewards_mint != Pubkey::default() {
-            if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
+    pub fn validate(
+        &self,
+        destination_mint: Pubkey,
+        token_a_mint: Pubkey,
+        token_b_mint: Pubkey,
+    ) -> Result<()> {
+        if self.rewards_mint == Pubkey::default() {
+            return Ok(());
+        }
+
+        match self.id {
+            MarketRewards::NotSet => {}
+            MarketRewards::Transfer => {
                 require!(
-                    self.id == MarketRewards::NotSet,
-                    ErrorCode::InvalidMarketRewardsInputSwap,
+                    self.rewards_mint == destination_mint,
+                    ErrorCode::InvalidMarketRewardsInputTransferAcc
+                )
+            }
+            _ => {
+                if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
+                    require!(
+                        self.id == MarketRewards::NotSet,
+                        ErrorCode::InvalidMarketRewardsInputSwap,
+                    );
+                }
+
+                require!(
+                    self.min_amount_out > 0,
+                    ErrorCode::InvalidMarketRewardsInputZeroAmount,
                 );
             }
-
-            require!(
-                self.min_amount_out > 0,
-                ErrorCode::InvalidMarketRewardsInputZeroAmount,
-            );
-        }
+        };
 
         Ok(())
     }
@@ -196,9 +212,9 @@ impl MarketRewardsInfo {
 #[repr(u8)]
 pub enum MarketRewards {
     NotSet,
+    Transfer,
     OrcaV2,
     Whirlpool,
-    TransferRewards,
 }
 
 impl MarketRewards {
