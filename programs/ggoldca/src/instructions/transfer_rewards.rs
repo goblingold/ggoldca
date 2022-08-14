@@ -52,7 +52,7 @@ pub fn handler(ctx: Context<TransferRewards>) -> Result<()> {
         .market_rewards
         .iter()
         .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
-        .ok_or(ErrorCode::InvalidMarketRewards)?;
+        .ok_or(ErrorCode::InvalidRewardMint)?;
 
     require!(
         market_rewards.id == MarketRewards::Transfer,

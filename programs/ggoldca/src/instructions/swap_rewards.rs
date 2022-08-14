@@ -116,12 +116,12 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
         .market_rewards
         .iter()
         .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
-        .ok_or(ErrorCode::InvalidMarketRewards)?;
+        .ok_or(ErrorCode::InvalidRewardMint)?;
 
     require!(
         market_rewards.destination_token_account
             == ctx.accounts.vault_destination_token_account.key(),
-        ErrorCode::InvalidSwap
+        ErrorCode::InvalidDestinationAccount
     );
 
     let amount_out_before = ctx.accounts.vault_destination_token_account.amount;
@@ -166,7 +166,7 @@ fn swap_orca_cpi<'info>(
 ) -> Result<()> {
     require!(
         ctx.accounts.swap_program.key() == orca_swap_v2::ID,
-        ErrorCode::InvalidSwapProgramId
+        ErrorCode::SwapInvalidProgramId
     );
     require!(ctx.remaining_accounts.len() == 6, InvalidNumberOfAccounts);
 
@@ -191,7 +191,7 @@ fn swap_whirlpool_cpi<'info>(
 ) -> Result<()> {
     require!(
         ctx.accounts.swap_program.key() == whirlpool::ID,
-        ErrorCode::InvalidSwapProgramId
+        ErrorCode::SwapInvalidProgramId
     );
     require!(ctx.remaining_accounts.len() == 7, InvalidNumberOfAccounts);
 

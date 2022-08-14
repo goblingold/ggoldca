@@ -14,12 +14,27 @@ pub enum ErrorCode {
     #[msg("Math overflow during type conversion")]
     MathOverflowConversion,
 
-    #[msg("Exceeded token max")]
-    ExceededTokenMax,
-
     #[msg("Invalid vault version")]
     InvalidVaultVersion,
 
+    #[msg("Unauthorized user")]
+    UnauthorizedUser,
+
+    #[msg("Fee cannot exceed FEE_SCALE")]
+    InvalidFee,
+
+    #[msg("Market rewards input invalid destination account mint")]
+    MarketInvalidDestination,
+    #[msg("Market rewards input swap of input tokens not allowed")]
+    MarketInvalidSwapMint,
+    #[msg("Market rewards input zero min_amount_out not allowed")]
+    MarketInvalidZeroAmount,
+
+    #[msg("Exceeded token max")]
+    ExceededTokenMax,
+
+    #[msg("Invalid destination token account")]
+    InvalidDestinationAccount,
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
     #[msg("Invalid reward token mint pubkey")]
@@ -39,37 +54,19 @@ pub enum ErrorCode {
     #[msg("Not enough rewards generated yet")]
     NotEnoughRewards,
 
-    #[msg("Unauthorized user")]
-    UnauthorizedUser,
-    #[msg("Invalid swap")]
-    InvalidSwap,
     #[msg("Invalid number of accounts")]
     InvalidNumberOfAccounts,
-    #[msg("Invalid Fee")]
-    InvalidFee,
-    #[msg("Invalid Market Rewards")]
-    InvalidMarketRewards,
 
-    #[msg("Market rewards input wrong transfer account")]
-    InvalidMarketRewardsInputTransferAcc,
-    #[msg("Market rewards input zero min_amount_out not allowed")]
-    InvalidMarketRewardsInputZeroAmount,
-    #[msg("Market rewards input swap of input tokens not allowed")]
-    InvalidMarketRewardsInputSwap,
-
-    #[msg("Swap market not set. Use instead transfer rewards")]
-    InvalidSwapMarket,
-    #[msg("Invalid swap program ID")]
-    InvalidSwapProgramId,
     #[msg("Swap is not set for the current rewards")]
     SwapNotSet,
+    #[msg("Invalid swap program ID")]
+    SwapInvalidProgramId,
+
     #[msg("Transfer is not set for the current rewards")]
     TransferNotSet,
-    #[msg("Invalid destination token account")]
-    InvalidDestinationAccount,
 
-    #[msg("whirlpool: Liquidity amount must be less than i64::MAX")]
+    #[msg("whirlpool_cpi: Liquidity amount must be less than i64::MAX")]
     WhirlpoolLiquidityTooHigh,
-    #[msg("whirlpool: overflow while computing liquidity to token deltas")]
+    #[msg("whirlpool_cpi: Overflow while computing liquidity to token deltas")]
     WhirlpoolLiquidityToDeltasOverflow,
 }
