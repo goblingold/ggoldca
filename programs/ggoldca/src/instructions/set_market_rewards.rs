@@ -41,12 +41,19 @@ pub fn handler(
         .position(|ri| ri.mint == ctx.accounts.rewards_mint.key())
         .ok_or_else(|| error!(ErrorCode::InvalidRewardMint))?;
 
-    ctx.accounts.vault_account.market_rewards[index] = MarketRewardsInfo {
+    let market = MarketRewardsInfo {
         rewards_mint: ctx.accounts.rewards_mint.key(),
         id: market_rewards.id,
         is_destination_token_a: market_rewards.is_destination_token_a,
         min_amount_out: market_rewards.min_amount_out,
     };
+
+    market.validate(
+        ctx.accounts.vault_account.input_token_a_mint_pubkey,
+        ctx.accounts.vault_account.input_token_a_mint_pubkey,
+    )?;
+
+    ctx.accounts.vault_account.market_rewards[index] = market;
 
     Ok(())
 }

@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 
 /// Number of simultaneous positions allowed
@@ -160,6 +161,24 @@ pub struct MarketRewardsInfo {
 
 impl MarketRewardsInfo {
     pub const SIZE: usize = 32 + 1 + 2;
+
+    pub fn validate(&self, token_a_mint: Pubkey, token_b_mint: Pubkey) -> Result<()> {
+        if self.rewards_mint != Pubkey::default() {
+            if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
+                require!(
+                    self.id == MarketRewards::NotSet,
+                    ErrorCode::InvalidMarketRewardsInputSwap,
+                );
+            }
+
+            require!(
+                self.min_amount_out > 0,
+                ErrorCode::InvalidMarketRewardsInputZeroAmount,
+            );
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Eq, Copy, Clone, Debug)]

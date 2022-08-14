@@ -107,14 +107,21 @@ pub fn handler(
     );
 
     let mut market_rewards_info: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS] = Default::default();
-    market_rewards_input.iter().enumerate().for_each(|(i, x)| {
-        market_rewards_info[i] = MarketRewardsInfo {
-            rewards_mint: reward_infos[i].mint,
-            id: x.id,
-            is_destination_token_a: x.is_destination_token_a,
-            min_amount_out: x.min_amount_out,
-        }
-    });
+
+    for i in 0..market_rewards_input.len() {
+        let input = market_rewards_input[i];
+        let rewards_mint = reward_infos[i].mint;
+
+        let market = MarketRewardsInfo {
+            rewards_mint,
+            id: input.id,
+            is_destination_token_a: input.is_destination_token_a,
+            min_amount_out: input.min_amount_out,
+        };
+
+        market.validate(token_mint_a, token_mint_b)?;
+        market_rewards_info[i] = market;
+    }
 
     ctx.accounts
         .vault_account
