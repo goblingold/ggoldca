@@ -190,19 +190,17 @@ impl MarketRewardsInfo {
                 )
             }
             _ => {
-                if self.rewards_mint != Pubkey::default() {
-                    if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
-                        require!(
-                            self.id == MarketRewards::NotSet,
-                            ErrorCode::InvalidMarketRewardsInputSwap,
-                        );
-                    }
-
+                if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
                     require!(
-                        self.min_amount_out > 0,
-                        ErrorCode::InvalidMarketRewardsInputZeroAmount,
+                        self.id == MarketRewards::NotSet,
+                        ErrorCode::InvalidMarketRewardsInputSwap,
                     );
                 }
+
+                require!(
+                    self.min_amount_out > 0,
+                    ErrorCode::InvalidMarketRewardsInputZeroAmount,
+                );
             }
         };
 
