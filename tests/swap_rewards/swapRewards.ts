@@ -36,24 +36,10 @@ describe("swapRewards", () => {
   };
 
   it("Initialize vault", async () => {
-    const vecMarketRewards = [
-      {
-        id: { whirlpool: {} },
-        isDestinationTokenA: false,
-        minAmountOut: new anchor.BN(1),
-      },
-      {
-        id: { orcaV2: {} },
-        isDestinationTokenA: false,
-        minAmountOut: new anchor.BN(1),
-      },
-    ];
-
     const ixs = await ggClient.initializeVaultIxs({
       userSigner,
       vaultId,
       fee: new anchor.BN(10),
-      vecMarketRewards,
     });
 
     const tx = ixs.reduce(
@@ -63,6 +49,46 @@ describe("swapRewards", () => {
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
     console.log("initialize_vault", txSig);
+  });
+
+  it("Set market rewards for swap", async () => {
+    const poolData = await ggClient.fetcher.getWhirlpoolData(vaultId.whirlpool);
+
+    const { vaultInputTokenBAccount } = await ggClient.pdaAccounts.getVaultKeys(
+      vaultId
+    );
+
+    const rewardMints = poolData.rewardInfos
+      .map((info) => info.mint)
+      .filter((k) => k.toString() !== anchor.web3.PublicKey.default.toString());
+
+    const marketData = [
+      {
+        id: { whirlpool: {} },
+        minAmountOut: new anchor.BN(1),
+      },
+      {
+        id: { orcaV2: {} },
+        minAmountOut: new anchor.BN(1),
+      },
+    ];
+
+    const tx = (
+      await Promise.all(
+        marketData.map((data, indx) =>
+          ggClient.setMarketRewards({
+            userSigner,
+            vaultId,
+            rewardsMint: rewardMints[indx],
+            marketRewards: data,
+            destinationTokenAccount: vaultInputTokenBAccount,
+          })
+        )
+      )
+    ).reduce((acc, ix) => acc.add(ix), new anchor.web3.Transaction());
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set_market_rewards_swap", txSig);
   });
 
   it("Swap rewards", async () => {
