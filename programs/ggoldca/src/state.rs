@@ -150,10 +150,12 @@ impl PositionInfo {
 pub struct MarketRewardsInfo {
     /// Pubkey of the rewards token mint
     pub rewards_mint: Pubkey,
-    /// Pubkey of the mint output to swap the rewards for
-    pub is_destination_token_a: bool,
     /// Id of market associated
     pub id: MarketRewards,
+    /// Mint output of the swap matches whirpool's token_a
+    pub is_destination_token_a: bool,
+    /// Minimum number of lamports to receive during swap
+    pub min_amount_out: u64,
 }
 
 impl MarketRewardsInfo {

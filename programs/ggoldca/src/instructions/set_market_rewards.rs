@@ -43,8 +43,9 @@ pub fn handler(
 
     ctx.accounts.vault_account.market_rewards[index] = MarketRewardsInfo {
         rewards_mint: ctx.accounts.rewards_mint.key(),
-        is_destination_token_a: market_rewards.is_destination_token_a,
         id: market_rewards.id,
+        is_destination_token_a: market_rewards.is_destination_token_a,
+        min_amount_out: market_rewards.min_amount_out,
     };
 
     Ok(())
