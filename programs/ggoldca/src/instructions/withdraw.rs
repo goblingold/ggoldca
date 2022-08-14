@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use crate::instructions::{DepositWithdraw, DepositWithdrawEvent};
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
@@ -11,6 +12,8 @@ pub fn handler(
     mut min_amount_a: u64,
     mut min_amount_b: u64,
 ) -> Result<()> {
+    require!(lp_amount > 0, ErrorCode::ZeroLpAmount);
+
     let amount_user_a_before = ctx.accounts.user_token_a_account.amount;
     let amount_user_b_before = ctx.accounts.user_token_b_account.amount;
 
