@@ -169,7 +169,7 @@ pub struct MarketRewardsInfo {
 }
 
 impl MarketRewardsInfo {
-    pub const SIZE: usize = 32 + MarketRewards::SIZE + 1 + 8;
+    pub const SIZE: usize = MarketRewards::SIZE + 32 + 32 + 8;
 
     pub fn validate(
         &self,
