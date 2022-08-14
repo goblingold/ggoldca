@@ -10,6 +10,13 @@ use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use whirlpool::cpi::accounts::{CollectReward, UpdateFeesAndRewards};
 
+#[event]
+struct CollectRewardsEvent {
+    vault_account: Pubkey,
+    total_rewards: u64,
+    treasury_fee: u64,
+}
+
 #[derive(Accounts)]
 pub struct CollectRewards<'info> {
     #[account(
@@ -117,13 +124,15 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let amount_after = ctx.accounts.vault_rewards_token_account.amount;
     let amount_increase = amount_after.safe_sub(amount_before)?;
 
+    let mut treasury_fee: u64 = 0;
     if ctx.accounts.vault_account.fee > 0 {
+        // amount increase > FEE SCALE in order to reduce the error produced by rounding
         // skip the check in order to be able to claim all pending rewards & close the position
         if !has_zero_liquidity {
             require!(amount_increase > FEE_SCALE, ErrorCode::NotEnoughRewards);
         }
 
-        let treasury_fee =
+        treasury_fee =
             amount_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         token::transfer(
@@ -133,6 +142,12 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
             treasury_fee,
         )?;
     }
+
+    emit!(CollectRewardsEvent {
+        vault_account: ctx.accounts.vault_account.key(),
+        total_rewards: amount_increase,
+        treasury_fee,
+    });
 
     Ok(())
 }

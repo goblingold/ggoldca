@@ -17,7 +17,7 @@ use whirlpool::math::{
 
 #[event]
 struct ReinvestEvent {
-    whirlpool_id: Pubkey,
+    vault_account: Pubkey,
     lp_supply: u64,
     liquidity: u128,
     liquidity_increase: u128,
@@ -254,7 +254,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     ctx.accounts.vault_account.last_liquidity_increase = liquidity_increase;
 
     emit!(ReinvestEvent {
-        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        vault_account: ctx.accounts.vault_account.key(),
         lp_supply: ctx.accounts.vault_lp_token_mint_pubkey.supply,
         liquidity: liquidity_after,
         liquidity_increase,

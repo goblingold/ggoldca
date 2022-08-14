@@ -10,6 +10,15 @@ use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use whirlpool::cpi::accounts::{CollectFees as WhCollectFees, UpdateFeesAndRewards};
 
+#[event]
+struct CollectFeesEvent {
+    vault_account: Pubkey,
+    total_fees_token_a: u64,
+    total_fees_token_b: u64,
+    treasury_fee_token_a: u64,
+    treasury_fee_token_b: u64,
+}
+
 #[derive(Accounts)]
 pub struct CollectFees<'info> {
     #[account(
@@ -155,16 +164,20 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let amount_a_increase = amount_a_after.safe_sub(amount_a_before)?;
     let amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
 
+    let mut treasury_fee_a: u64 = 0;
+    let mut treasury_fee_b: u64 = 0;
+
     if ctx.accounts.vault_account.fee > 0 {
+        // amount increase > FEE SCALE in order to reduce the error produced by rounding
         // skip the check in order to be able to claim all pending rewards & close the position
         if !has_zero_liquidity {
             require!(amount_a_increase > FEE_SCALE, ErrorCode::NotEnoughFees);
             require!(amount_b_increase > FEE_SCALE, ErrorCode::NotEnoughFees);
         }
 
-        let treasury_fee_a =
+        treasury_fee_a =
             amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
-        let treasury_fee_b =
+        treasury_fee_b =
             amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         token::transfer(
@@ -184,6 +197,14 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let vault = &mut ctx.accounts.vault_account;
     vault.earned_rewards_token_a = vault.earned_rewards_token_a.safe_add(amount_a_increase)?;
     vault.earned_rewards_token_b = vault.earned_rewards_token_b.safe_add(amount_b_increase)?;
+
+    emit!(CollectFeesEvent {
+        vault_account: ctx.accounts.vault_account.key(),
+        total_fees_token_a: amount_a_increase,
+        total_fees_token_b: amount_b_increase,
+        treasury_fee_token_a: treasury_fee_a,
+        treasury_fee_token_b: treasury_fee_b,
+    });
 
     Ok(())
 }
