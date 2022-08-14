@@ -14,6 +14,7 @@ use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
 
 #[event]
 pub struct SwapEvent {
+    pub vault_account: Pubkey,
     pub mint_in: Pubkey,
     pub amount_in: u64,
     pub mint_out: Pubkey,
@@ -148,6 +149,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     }
 
     emit!(SwapEvent {
+        vault_account: ctx.accounts.vault_account.key(),
         mint_in: ctx.accounts.vault_rewards_token_account.mint,
         amount_in: amount_to_swap,
         mint_out: ctx.accounts.vault_destination_token_account.mint,

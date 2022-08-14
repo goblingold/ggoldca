@@ -11,7 +11,7 @@ use anchor_spl::token::{Token, TokenAccount};
 
 #[event]
 struct RebalanceEvent {
-    whirlpool_id: Pubkey,
+    vault_account: Pubkey,
     old_liquidity: u128,
     new_liquidity: u128,
 }
@@ -134,7 +134,7 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     vault.update_active_position(ctx.accounts.new_position.position.key());
 
     emit!(RebalanceEvent {
-        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        vault_account: ctx.accounts.vault_account.key(),
         old_liquidity: init_liquidity,
         new_liquidity,
     });
