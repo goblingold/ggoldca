@@ -156,7 +156,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
 
     let liquidity_before = ctx.accounts.position.liquidity()?;
 
-    // Swap some tokens in order to maintain the position ratio
+    // Swap some tokens in order to maintain the position ratio. Formula described in docs/math.tex
     {
         let amount_a = ctx.accounts.vault_input_token_a_account.amount;
         let amount_b = ctx.accounts.vault_input_token_b_account.amount;

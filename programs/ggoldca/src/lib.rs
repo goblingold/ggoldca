@@ -1,3 +1,4 @@
+//! NAZARE: Liquidity Management for Orca Whirlpools
 use anchor_lang::prelude::*;
 use error::ErrorCode;
 use instructions::*;
