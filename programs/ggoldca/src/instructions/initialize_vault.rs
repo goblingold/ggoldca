@@ -1,5 +1,5 @@
 use crate::error::ErrorCode;
-use crate::state::{Bumps,  VaultAccount, VaultAccountParams};
+use crate::state::{Bumps, VaultAccount, VaultAccountParams};
 use crate::{FEE_SCALE, VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
