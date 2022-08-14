@@ -103,9 +103,7 @@ pub mod ggoldca {
         instructions::swap_rewards::handler(ctx)
     }
 
-    pub fn transfer_rewards<'info>(
-        ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>,
-    ) -> Result<()> {
+    pub fn transfer_rewards(ctx: Context<TransferRewards>) -> Result<()> {
         instructions::transfer_rewards::handler(ctx)
     }
 

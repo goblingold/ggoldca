@@ -42,7 +42,7 @@ impl<'info> TransferRewards<'info> {
     }
 }
 
-pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -> Result<()> {
+pub fn handler(ctx: Context<TransferRewards>) -> Result<()> {
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
