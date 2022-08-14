@@ -4,7 +4,7 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED};
+use crate::{VAULT_ACCOUNT_SEED, VAULT_LP_TOKEN_MINT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
@@ -17,7 +17,7 @@ use whirlpool::math::{
 
 #[event]
 struct ReinvestEvent {
-    whirlpool_id: Pubkey,
+    vault_account: Pubkey,
     lp_supply: u64,
     liquidity: u128,
     liquidity_increase: u128,
@@ -27,7 +27,8 @@ struct ReinvestEvent {
 pub struct Reinvest<'info> {
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -254,7 +255,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     ctx.accounts.vault_account.last_liquidity_increase = liquidity_increase;
 
     emit!(ReinvestEvent {
-        whirlpool_id: ctx.accounts.vault_account.whirlpool_id,
+        vault_account: ctx.accounts.vault_account.key(),
         lp_supply: ctx.accounts.vault_lp_token_mint_pubkey.supply,
         liquidity: liquidity_after,
         liquidity_increase,

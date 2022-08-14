@@ -3,18 +3,28 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
+use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use whirlpool::cpi::accounts::{CollectFees as WhCollectFees, UpdateFeesAndRewards};
 
+#[event]
+struct CollectFeesEvent {
+    vault_account: Pubkey,
+    total_fees_token_a: u64,
+    total_fees_token_b: u64,
+    treasury_fee_token_a: u64,
+    treasury_fee_token_b: u64,
+}
+
 #[derive(Accounts)]
 pub struct CollectFees<'info> {
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -155,16 +165,20 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let amount_a_increase = amount_a_after.safe_sub(amount_a_before)?;
     let amount_b_increase = amount_b_after.safe_sub(amount_b_before)?;
 
+    let mut treasury_fee_a: u64 = 0;
+    let mut treasury_fee_b: u64 = 0;
+
     if ctx.accounts.vault_account.fee > 0 {
+        // amount increase > FEE SCALE in order to reduce the error produced by rounding
         // skip the check in order to be able to claim all pending rewards & close the position
         if !has_zero_liquidity {
             require!(amount_a_increase > FEE_SCALE, ErrorCode::NotEnoughFees);
             require!(amount_b_increase > FEE_SCALE, ErrorCode::NotEnoughFees);
         }
 
-        let treasury_fee_a =
+        treasury_fee_a =
             amount_a_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
-        let treasury_fee_b =
+        treasury_fee_b =
             amount_b_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         token::transfer(
@@ -184,6 +198,14 @@ pub fn handler(ctx: Context<CollectFees>) -> Result<()> {
     let vault = &mut ctx.accounts.vault_account;
     vault.earned_rewards_token_a = vault.earned_rewards_token_a.safe_add(amount_a_increase)?;
     vault.earned_rewards_token_b = vault.earned_rewards_token_b.safe_add(amount_b_increase)?;
+
+    emit!(CollectFeesEvent {
+        vault_account: ctx.accounts.vault_account.key(),
+        total_fees_token_a: amount_a_increase,
+        total_fees_token_b: amount_b_increase,
+        treasury_fee_token_a: treasury_fee_a,
+        treasury_fee_token_b: treasury_fee_b,
+    });
 
     Ok(())
 }

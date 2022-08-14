@@ -1,7 +1,7 @@
 use super::MarketRewardsInfoInput;
 use crate::error::ErrorCode;
 use crate::state::{MarketRewardsInfo, VaultAccount};
-use crate::VAULT_ACCOUNT_SEED;
+use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_spl::token::Mint;
 
@@ -11,7 +11,8 @@ pub struct SetMarketRewards<'info> {
     pub user_signer: Signer<'info>,
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,

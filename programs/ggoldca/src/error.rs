@@ -17,6 +17,9 @@ pub enum ErrorCode {
     #[msg("Exceeded token max")]
     ExceededTokenMax,
 
+    #[msg("Invalid vault version")]
+    InvalidVaultVersion,
+
     #[msg("Invalid input token mint pubkey")]
     InvalidInputMint,
     #[msg("Invalid reward token mint pubkey")]

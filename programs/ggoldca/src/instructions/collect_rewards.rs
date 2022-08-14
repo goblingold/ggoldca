@@ -3,17 +3,25 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
+use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use whirlpool::cpi::accounts::{CollectReward, UpdateFeesAndRewards};
 
+#[event]
+struct CollectRewardsEvent {
+    vault_account: Pubkey,
+    total_rewards: u64,
+    treasury_fee: u64,
+}
+
 #[derive(Accounts)]
 pub struct CollectRewards<'info> {
     #[account(
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
@@ -117,13 +125,15 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
     let amount_after = ctx.accounts.vault_rewards_token_account.amount;
     let amount_increase = amount_after.safe_sub(amount_before)?;
 
+    let mut treasury_fee: u64 = 0;
     if ctx.accounts.vault_account.fee > 0 {
+        // amount increase > FEE SCALE in order to reduce the error produced by rounding
         // skip the check in order to be able to claim all pending rewards & close the position
         if !has_zero_liquidity {
             require!(amount_increase > FEE_SCALE, ErrorCode::NotEnoughRewards);
         }
 
-        let treasury_fee =
+        treasury_fee =
             amount_increase.safe_mul_div_round_up(ctx.accounts.vault_account.fee, FEE_SCALE)?;
 
         token::transfer(
@@ -133,6 +143,12 @@ pub fn handler(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
             treasury_fee,
         )?;
     }
+
+    emit!(CollectRewardsEvent {
+        vault_account: ctx.accounts.vault_account.key(),
+        total_rewards: amount_increase,
+        treasury_fee,
+    });
 
     Ok(())
 }
