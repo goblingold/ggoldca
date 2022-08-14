@@ -190,12 +190,11 @@ impl MarketRewardsInfo {
                 )
             }
             _ => {
-                if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
-                    require!(
-                        self.id == MarketRewards::NotSet,
-                        ErrorCode::InvalidMarketRewardsInputSwap,
-                    );
-                }
+                require!(
+                    self.rewards_mint != token_a_mint && self.rewards_mint != token_b_mint,
+                    ErrorCode::InvalidMarketRewardsInputSwap,
+                );
+
                 require!(
                     destination_mint == token_a_mint || destination_mint == token_b_mint,
                     ErrorCode::InvalidDestinationAccount
