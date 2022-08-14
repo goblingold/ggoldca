@@ -9,6 +9,7 @@ pub mod reinvest;
 pub mod set_market_rewards;
 pub mod set_vault_fee;
 pub mod swap_rewards;
+pub mod transfer_rewards;
 pub mod withdraw;
 
 pub use close_position::*;
@@ -22,4 +23,5 @@ pub use reinvest::*;
 pub use set_market_rewards::*;
 pub use set_vault_fee::*;
 pub use swap_rewards::*;
+pub use transfer_rewards::*;
 pub use withdraw::*;

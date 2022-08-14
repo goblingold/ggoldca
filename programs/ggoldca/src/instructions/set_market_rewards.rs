@@ -20,6 +20,7 @@ pub struct SetMarketRewards<'info> {
     /// CHECK: owner and account data is checked
     pub whirlpool: AccountInfo<'info>,
     pub rewards_mint: Account<'info, Mint>,
+    pub destination_token_account: AccountInfo<'info>,
 }
 
 pub fn handler(
@@ -42,11 +43,20 @@ pub fn handler(
         .position(|ri| ri.mint == ctx.accounts.rewards_mint.key())
         .ok_or_else(|| error!(ErrorCode::InvalidRewardMint))?;
 
-    ctx.accounts.vault_account.market_rewards[index] = MarketRewardsInfo {
-        rewards_mint: ctx.accounts.rewards_mint.key(),
-        is_destination_token_a: market_rewards.is_destination_token_a,
+    let market = MarketRewardsInfo {
         id: market_rewards.id,
+        rewards_mint: ctx.accounts.rewards_mint.key(),
+        destination_token_account: ctx.accounts.destination_token_account.key(),
+        is_destination_token_a: market_rewards.is_destination_token_a,
+        min_amount_out: market_rewards.min_amount_out,
     };
+
+    market.validate(
+        ctx.accounts.vault_account.input_token_a_mint_pubkey,
+        ctx.accounts.vault_account.input_token_b_mint_pubkey,
+    )?;
+
+    ctx.accounts.vault_account.market_rewards[index] = market;
 
     Ok(())
 }

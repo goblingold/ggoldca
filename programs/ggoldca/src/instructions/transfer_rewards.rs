@@ -1,24 +1,9 @@
 use crate::error::ErrorCode;
-use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
-use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
-use anchor_lang_for_whirlpool::{
-    context::CpiContext as CpiContextForWhirlpool, AccountDeserialize,
-};
-use anchor_spl::token::{Token, TokenAccount};
-use std::borrow::Borrow;
-use whirlpool::math::tick_math::{MAX_SQRT_PRICE_X64, MIN_SQRT_PRICE_X64};
-
-#[event]
-pub struct SwapEvent {
-    pub mint_in: Pubkey,
-    pub amount_in: u64,
-    pub mint_out: Pubkey,
-    pub amount_out: u64,
-}
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
 pub struct TransferRewards<'info> {
@@ -37,11 +22,29 @@ pub struct TransferRewards<'info> {
     )]
     pub vault_rewards_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
+    /// CHECK: checked later with market_rewards
     pub destination_token_account: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
 
+impl<'info> TransferRewards<'info> {
+    fn transfer_from_vault_to_destination_ctx(
+        &self,
+    ) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        CpiContext::new(
+            self.token_program.to_account_info(),
+            Transfer {
+                from: self.vault_rewards_token_account.to_account_info(),
+                to: self.destination_token_account.to_account_info(),
+                authority: self.vault_account.to_account_info(),
+            },
+        )
+    }
+}
+
 pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -> Result<()> {
+    let seeds = generate_seeds!(ctx.accounts.vault_account);
+    let signer = &[&seeds[..]];
 
     let market_rewards: &MarketRewardsInfo = ctx
         .accounts
@@ -51,10 +54,21 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, TransferRewards<'info>>) -
         .find(|market| market.rewards_mint == ctx.accounts.vault_rewards_token_account.mint)
         .ok_or(ErrorCode::InvalidMarketRewards)?;
 
-    require!(market_rewards.id == MarketRewards::TransferRewards);
-    require!(ctx.accounts.destination_token_account == market_rewards.destination_token_account, ErrorCode::InvalidDestinationAccount);
-    
+    require!(
+        market_rewards.id == MarketRewards::TransferRewards,
+        ErrorCode::InvalidDestinationAccount
+    );
+    require!(
+        ctx.accounts.destination_token_account.key() == market_rewards.destination_token_account,
+        ErrorCode::InvalidDestinationAccount
+    );
 
+    token::transfer(
+        ctx.accounts
+            .transfer_from_vault_to_destination_ctx()
+            .with_signer(signer),
+        ctx.accounts.vault_rewards_token_account.amount,
+    )?;
 
+    Ok(())
 }
-

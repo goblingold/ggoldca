@@ -1,3 +1,4 @@
+use crate::error::ErrorCode;
 use anchor_lang::prelude::*;
 
 use crate::VAULT_VERSION;
@@ -7,6 +8,9 @@ pub const MAX_POSITIONS: usize = 3;
 
 /// Number of whirlpool rewards (from whirlpool::state::whirlpool::NUM_REWARDS)
 pub const WHIRLPOOL_NUM_REWARDS: usize = 3;
+
+/// Additional padding (8 * bytes)
+const PADDING_AS_U64: usize = 10;
 
 /// Strategy vault account
 #[account]
@@ -29,6 +33,7 @@ pub struct VaultAccount {
 
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
+
     /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
 
@@ -36,17 +41,19 @@ pub struct VaultAccount {
     pub earned_rewards_token_a: u64,
     pub earned_rewards_token_b: u64,
 
-    /// Additional padding
-    pub _padding: [u64; 10],
-
     /// The market where to sell the rewards
     pub market_rewards: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
+
+    /// Additional padding
+    pub _padding: [u64; PADDING_AS_U64],
+
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
 
 impl VaultAccount {
     pub const SIZE: usize = 1
+        + 1
         + Bumps::SIZE
         + 32
         + 32
@@ -55,13 +62,13 @@ impl VaultAccount {
         + 8
         + 8
         + 8
-        + 8 * 10
-        + 4
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
+        + 8 * PADDING_AS_U64
+        + 4
         + MAX_POSITIONS * PositionInfo::SIZE;
 
-    /// Initialize a new vault
-    pub fn init(params: InitVaultAccountParams) -> Self {
+    /// Create a new vault
+    pub fn new(params: VaultAccountParams) -> Self {
         Self {
             version: VAULT_VERSION,
             id: params.id,
@@ -70,7 +77,6 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             fee: params.fee,
-            market_rewards: params.market_rewards_info,
             ..Self::default()
         }
     }
@@ -104,8 +110,8 @@ impl VaultAccount {
     }
 }
 
-/// Initialize a new vault
-pub struct InitVaultAccountParams {
+/// Create a new vault
+pub struct VaultAccountParams {
     /// Vault id
     pub id: u8,
 
@@ -122,8 +128,6 @@ pub struct InitVaultAccountParams {
 
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
-    /// Market rewards infos
-    pub market_rewards_info: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
 }
 
 /// PDA bump seeds
@@ -160,12 +164,32 @@ pub struct MarketRewardsInfo {
     pub rewards_mint: Pubkey,
     /// Destination account
     pub destination_token_account: Pubkey,
-    /// Pubkey of the mint output to swap the rewards for
+    /// Mint output of the swap matches whirpool's token_a
     pub is_destination_token_a: bool,
+    /// Minimum number of lamports to receive during swap
+    pub min_amount_out: u64,
 }
 
 impl MarketRewardsInfo {
-    pub const SIZE: usize = 32 + 1 + 2;
+    pub const SIZE: usize = 32 + MarketRewards::SIZE + 1 + 8;
+
+    pub fn validate(&self, token_a_mint: Pubkey, token_b_mint: Pubkey) -> Result<()> {
+        if self.rewards_mint != Pubkey::default() {
+            if self.rewards_mint == token_a_mint || self.rewards_mint == token_b_mint {
+                require!(
+                    self.id == MarketRewards::NotSet,
+                    ErrorCode::InvalidMarketRewardsInputSwap,
+                );
+            }
+
+            require!(
+                self.min_amount_out > 0,
+                ErrorCode::InvalidMarketRewardsInputZeroAmount,
+            );
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Eq, Copy, Clone, Debug)]
@@ -174,7 +198,11 @@ pub enum MarketRewards {
     NotSet,
     OrcaV2,
     Whirlpool,
-    TransferRewards
+    TransferRewards,
+}
+
+impl MarketRewards {
+    pub const SIZE: usize = 1 + 1;
 }
 
 impl Default for MarketRewards {

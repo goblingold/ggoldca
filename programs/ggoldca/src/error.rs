@@ -50,6 +50,13 @@ pub enum ErrorCode {
     #[msg("Invalid Market Rewards")]
     InvalidMarketRewards,
 
+    #[msg("Market rewards input zero min_amount_out not allowed")]
+    InvalidMarketRewardsInputZeroAmount,
+    #[msg("Market rewards input swap of input tokens not allowed")]
+    InvalidMarketRewardsInputSwap,
+
+    #[msg("Swap market not set. Use instead transfer rewards")]
+    InvalidSwapMarket,
     #[msg("Invalid swap program ID")]
     InvalidSwapProgramId,
     #[msg("Swap is not set for the current rewards")]
