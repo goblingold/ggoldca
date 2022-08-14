@@ -56,8 +56,9 @@ pub fn handler(ctx: Context<TransferRewards>) -> Result<()> {
 
     require!(
         market_rewards.id == MarketRewards::Transfer,
-        ErrorCode::InvalidDestinationAccount
+        ErrorCode::TransferNotSet
     );
+
     require!(
         ctx.accounts.destination_token_account.key() == market_rewards.destination_token_account,
         ErrorCode::InvalidDestinationAccount

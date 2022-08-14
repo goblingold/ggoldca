@@ -138,8 +138,7 @@ pub fn handler<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Re
     match market_rewards.id {
         MarketRewards::OrcaV2 => swap_orca_cpi(&ctx, amount_to_swap, min_amount_out),
         MarketRewards::Whirlpool => swap_whirlpool_cpi(&ctx, amount_to_swap, min_amount_out),
-        MarketRewards::NotSet => Err(ErrorCode::SwapNotSet.into()),
-        MarketRewards::Transfer => Err(ErrorCode::InvalidSwapMarket.into()),
+        _ => Err(ErrorCode::SwapNotSet.into()),
     }?;
 
     ctx.accounts.vault_destination_token_account.reload()?;

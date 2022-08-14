@@ -61,6 +61,8 @@ pub enum ErrorCode {
     InvalidSwapProgramId,
     #[msg("Swap is not set for the current rewards")]
     SwapNotSet,
+    #[msg("Transfer is not set for the current rewards")]
+    TransferNotSet,
     #[msg("Invalid destination token account")]
     InvalidDestinationAccount,
 
