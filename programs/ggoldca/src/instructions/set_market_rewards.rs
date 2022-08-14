@@ -3,7 +3,7 @@ use crate::error::ErrorCode;
 use crate::state::{MarketRewardsInfo, VaultAccount};
 use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
-use anchor_spl::token::Mint;
+use anchor_spl::token::{Mint, TokenAccount};
 
 #[derive(Accounts)]
 pub struct SetMarketRewards<'info> {
@@ -20,7 +20,7 @@ pub struct SetMarketRewards<'info> {
     /// CHECK: owner and account data is checked
     pub whirlpool: AccountInfo<'info>,
     pub rewards_mint: Account<'info, Mint>,
-    pub destination_token_account: AccountInfo<'info>,
+    pub destination_token_account: Account<'info, TokenAccount>,
 }
 
 pub fn handler(
