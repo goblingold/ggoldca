@@ -1,9 +1,18 @@
-use super::MarketRewardsInfoInput;
 use crate::error::ErrorCode;
-use crate::state::{MarketRewardsInfo, VaultAccount};
+use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
 use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, TokenAccount};
+
+#[derive(AnchorSerialize, AnchorDeserialize, Copy, Clone, Default, Debug)]
+pub struct MarketRewardsInfoInput {
+    /// Id of market associated
+    pub id: MarketRewards,
+    /// Mint output of the swap matches whirpool's token_a
+    pub is_destination_token_a: bool,
+    /// Minimum number of lamports to receive during swap
+    pub min_amount_out: u64,
+}
 
 #[derive(Accounts)]
 pub struct SetMarketRewards<'info> {
