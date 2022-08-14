@@ -9,6 +9,9 @@ pub const MAX_POSITIONS: usize = 3;
 /// Number of whirlpool rewards (from whirlpool::state::whirlpool::NUM_REWARDS)
 pub const WHIRLPOOL_NUM_REWARDS: usize = 3;
 
+/// Additional padding (8 * bytes)
+const PADDING_AS_U64: usize = 10;
+
 /// Strategy vault account
 #[account]
 #[derive(Default, Debug)]
@@ -30,6 +33,7 @@ pub struct VaultAccount {
 
     /// Last reinvestment liquidity increase
     pub last_liquidity_increase: u128,
+
     /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
 
@@ -37,17 +41,19 @@ pub struct VaultAccount {
     pub earned_rewards_token_a: u64,
     pub earned_rewards_token_b: u64,
 
-    /// Additional padding
-    pub _padding: [u64; 10],
-
     /// The market where to sell the rewards
     pub market_rewards: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
+
+    /// Additional padding
+    pub _padding: [u64; PADDING_AS_U64],
+
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
 }
 
 impl VaultAccount {
     pub const SIZE: usize = 1
+        + 1
         + Bumps::SIZE
         + 32
         + 32
@@ -56,9 +62,9 @@ impl VaultAccount {
         + 8
         + 8
         + 8
-        + 8 * 10
-        + 4
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
+        + 8 * PADDING_AS_U64
+        + 4
         + MAX_POSITIONS * PositionInfo::SIZE;
 
     /// Create a new vault
@@ -166,7 +172,7 @@ pub struct MarketRewardsInfo {
 }
 
 impl MarketRewardsInfo {
-    pub const SIZE: usize = 32 + 1 + 2;
+    pub const SIZE: usize = 32 + MarketRewards::SIZE + 1 + 8;
 
     pub fn validate(&self, token_a_mint: Pubkey, token_b_mint: Pubkey) -> Result<()> {
         if self.rewards_mint != Pubkey::default() {
@@ -193,6 +199,10 @@ pub enum MarketRewards {
     NotSet,
     OrcaV2,
     Whirlpool,
+}
+
+impl MarketRewards {
+    pub const SIZE: usize = 1 + 1;
 }
 
 impl Default for MarketRewards {
