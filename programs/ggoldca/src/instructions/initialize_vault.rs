@@ -90,8 +90,18 @@ pub fn handler(
         ctx.accounts.input_token_b_mint_address.key() == token_mint_b,
         ErrorCode::InvalidInputMint
     );
+
     // Fee can't be more than 100%
     require!(fee <= FEE_SCALE, ErrorCode::InvalidFee);
+
+    require!(
+        reward_infos
+            .iter()
+            .filter(|ri| ri.mint != Pubkey::default())
+            .count()
+            == market_rewards_input.len(),
+        ErrorCode::InvalidMarketRewards
+    );
 
     let mut market_rewards_info: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS] = Default::default();
     market_rewards_input.iter().enumerate().for_each(|(i, x)| {
