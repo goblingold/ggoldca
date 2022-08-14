@@ -28,6 +28,8 @@ const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 
 const FEE_SCALE: u64 = 100;
 
+const VAULT_VERSION: u8 = 1;
+
 #[program]
 pub mod ggoldca {
 
@@ -36,11 +38,11 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn initialize_vault(
         ctx: Context<InitializeVault>,
-        vault_id: u8,
+        id: u8,
         fee: u64,
         market_rewards: Vec<MarketRewardsInfoInput>,
     ) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, vault_id, fee, market_rewards)
+        instructions::initialize_vault::handler(ctx, id, fee, market_rewards)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

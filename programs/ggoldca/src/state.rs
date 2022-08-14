@@ -10,8 +10,10 @@ pub const WHIRLPOOL_NUM_REWARDS: usize = 3;
 #[account]
 #[derive(Default, Debug)]
 pub struct VaultAccount {
+    /// Vault version
+    pub version: u8,
     /// Vault number for a given whirlpool
-    pub vault_id: u8,
+    pub id: u8,
 
     /// PDA bump seeds
     pub bumps: Bumps,
@@ -59,6 +61,8 @@ impl VaultAccount {
     /// Initialize a new vault
     pub fn init(params: InitVaultAccountParams) -> Self {
         Self {
+            version: 1,
+            id: params.id,
             bumps: params.bumps,
             whirlpool_id: params.whirlpool_id,
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
@@ -101,7 +105,7 @@ impl VaultAccount {
 /// Initialize a new vault
 pub struct InitVaultAccountParams {
     /// Vault id
-    pub vault_id: u8,
+    pub id: u8,
 
     /// PDA bump seeds
     pub bumps: Bumps,

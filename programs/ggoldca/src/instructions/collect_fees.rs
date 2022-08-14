@@ -3,7 +3,7 @@ use crate::interfaces::whirlpool_position::*;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::{SafeArithmetics, SafeMulDiv};
 use crate::state::VaultAccount;
-use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED};
+use crate::{FEE_SCALE, TREASURY_PUBKEY, VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
@@ -23,7 +23,8 @@ struct CollectFeesEvent {
 pub struct CollectFees<'info> {
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,

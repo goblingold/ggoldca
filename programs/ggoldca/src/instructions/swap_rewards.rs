@@ -3,7 +3,7 @@ use crate::interfaces::orca_swap_v2;
 use crate::macros::generate_seeds;
 use crate::math::safe_arithmetics::SafeArithmetics;
 use crate::state::{MarketRewards, MarketRewardsInfo, VaultAccount};
-use crate::VAULT_ACCOUNT_SEED;
+use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
 use anchor_lang_for_whirlpool::{
     context::CpiContext as CpiContextForWhirlpool, AccountDeserialize,
@@ -24,7 +24,8 @@ pub struct SwapEvent {
 pub struct SwapRewards<'info> {
     #[account(
         mut,
-        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.vault_id][..], vault_account.whirlpool_id.as_ref()],
+        constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
+        seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault
     )]
     pub vault_account: Box<Account<'info, VaultAccount>>,
