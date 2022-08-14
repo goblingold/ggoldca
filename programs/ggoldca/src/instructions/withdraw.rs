@@ -73,6 +73,7 @@ pub fn handler(
     let amount_user_b_diff = amount_user_b_after.safe_sub(amount_user_b_before)?;
 
     emit!(DepositWithdrawEvent {
+        vault_account: ctx.accounts.vault_account.key(),
         amount_a: amount_user_a_diff,
         amount_b: amount_user_b_diff,
         liquidity: user_liquidity

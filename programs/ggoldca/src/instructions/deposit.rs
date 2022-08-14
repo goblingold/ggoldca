@@ -11,6 +11,7 @@ use anchor_spl::token::{self, Approve, Burn, Mint, MintTo, Revoke, Token, TokenA
 
 #[event]
 pub struct DepositWithdrawEvent {
+    pub vault_account: Pubkey,
     pub amount_a: u64,
     pub amount_b: u64,
     pub liquidity: u128,
@@ -314,6 +315,7 @@ pub fn handler(
     let amount_user_b_diff = amount_user_b_before.safe_sub(amount_user_b_after)?;
 
     emit!(DepositWithdrawEvent {
+        vault_account: ctx.accounts.vault_account.key(),
         amount_a: amount_user_a_diff,
         amount_b: amount_user_b_diff,
         liquidity: user_liquidity

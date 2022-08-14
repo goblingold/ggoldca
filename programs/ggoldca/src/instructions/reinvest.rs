@@ -223,6 +223,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
 
         let event = if is_swap_from_a_to_b {
             SwapEvent {
+                vault_account: ctx.accounts.vault_account.key(),
                 mint_in: ctx.accounts.vault_input_token_a_account.mint,
                 amount_in: amount_to_swap,
                 mint_out: ctx.accounts.vault_input_token_b_account.mint,
@@ -234,6 +235,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             }
         } else {
             SwapEvent {
+                vault_account: ctx.accounts.vault_account.key(),
                 mint_in: ctx.accounts.vault_input_token_b_account.mint,
                 amount_in: amount_to_swap,
                 mint_out: ctx.accounts.vault_input_token_a_account.mint,
