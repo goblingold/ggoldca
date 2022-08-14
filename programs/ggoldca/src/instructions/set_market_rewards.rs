@@ -8,8 +8,6 @@ use anchor_spl::token::{Mint, TokenAccount};
 pub struct MarketRewardsInfoInput {
     /// Id of market associated
     pub id: MarketRewards,
-    /// Mint output of the swap matches whirpool's token_a
-    pub is_destination_token_a: bool,
     /// Minimum number of lamports to receive during swap
     pub min_amount_out: u64,
 }
@@ -56,7 +54,6 @@ pub fn handler(
         id: market_rewards.id,
         rewards_mint: ctx.accounts.rewards_mint.key(),
         destination_token_account: ctx.accounts.destination_token_account.key(),
-        is_destination_token_a: market_rewards.is_destination_token_a,
         min_amount_out: market_rewards.min_amount_out,
     };
 

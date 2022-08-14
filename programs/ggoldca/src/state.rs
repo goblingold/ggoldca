@@ -164,8 +164,6 @@ pub struct MarketRewardsInfo {
     pub rewards_mint: Pubkey,
     /// Destination account
     pub destination_token_account: Pubkey,
-    /// Mint output of the swap matches whirpool's token_a
-    pub is_destination_token_a: bool,
     /// Minimum number of lamports to receive during swap
     pub min_amount_out: u64,
 }
