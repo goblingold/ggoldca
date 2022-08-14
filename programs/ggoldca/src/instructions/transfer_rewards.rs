@@ -8,7 +8,6 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 #[derive(Accounts)]
 pub struct TransferRewards<'info> {
     #[account(
-        mut,
         constraint = vault_account.version == VAULT_VERSION @ ErrorCode::InvalidVaultVersion,
         seeds = [VAULT_ACCOUNT_SEED, &[vault_account.id][..], vault_account.whirlpool_id.as_ref()],
         bump = vault_account.bumps.vault

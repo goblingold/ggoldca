@@ -1,7 +1,6 @@
 use crate::error::ErrorCode;
-use anchor_lang::prelude::*;
-
 use crate::VAULT_VERSION;
+use anchor_lang::prelude::*;
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
