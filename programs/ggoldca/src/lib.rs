@@ -3,33 +3,32 @@ use anchor_lang::prelude::*;
 use error::ErrorCode;
 use instructions::*;
 
-mod error;
-mod instructions;
-mod interfaces;
-mod macros;
-mod math;
-mod state;
+pub mod error;
+pub mod instructions;
+pub mod interfaces;
+pub mod macros;
+pub mod math;
+pub mod state;
 
 declare_id!("NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT");
 
 // DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
-const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
+pub const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
     191, 17, 77, 109, 253, 243, 16, 188, 64, 67, 249, 18, 51, 62, 173, 81, 128, 208, 121, 29, 74,
     57, 94, 247, 114, 4, 114, 88, 209, 115, 147, 136,
 ]);
 
 // 8XhNoDjjNoLP5Rys1pBJKGdE8acEC1HJsWGkfkMt6JP1
-const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
+pub const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
     111, 222, 226, 197, 174, 64, 51, 181, 235, 205, 56, 138, 76, 105, 173, 158, 191, 43, 143, 141,
     91, 145, 78, 45, 130, 86, 102, 175, 146, 188, 82, 152,
 ]);
 
-const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
-const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
+pub const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
+pub const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 
-const FEE_SCALE: u64 = 100;
-
-const VAULT_VERSION: u8 = 1;
+pub const FEE_SCALE: u64 = 100;
+pub const VAULT_VERSION: u8 = 1;
 
 #[program]
 pub mod ggoldca {
