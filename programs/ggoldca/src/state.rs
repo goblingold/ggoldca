@@ -43,11 +43,11 @@ pub struct VaultAccount {
     /// The market where to sell the rewards
     pub market_rewards: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
 
-    /// Additional padding
-    pub _padding: [u64; PADDING_AS_U64],
-
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
+
+    /// Additional padding
+    pub _padding: [u64; PADDING_AS_U64],
 }
 
 impl VaultAccount {
@@ -62,9 +62,9 @@ impl VaultAccount {
         + 8
         + 8
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
-        + 8 * PADDING_AS_U64
         + 4
-        + MAX_POSITIONS * PositionInfo::SIZE;
+        + MAX_POSITIONS * PositionInfo::SIZE
+        + 8 * PADDING_AS_U64;
 
     /// Create a new vault
     pub fn new(params: VaultAccountParams) -> Self {
