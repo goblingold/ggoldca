@@ -10,18 +10,18 @@ mod macros;
 mod math;
 mod state;
 
-declare_id!("NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT");
+declare_id!("Nazareen6k6rAFXKKZrBj5PiehJsohQ8gwGFHJT77sa");
 
-// DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
+// HmSCy7wPWYRtydb6tM6zimoquTftjCJXscoREJ5WVHWH
 const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
-    191, 17, 77, 109, 253, 243, 16, 188, 64, 67, 249, 18, 51, 62, 173, 81, 128, 208, 121, 29, 74,
-    57, 94, 247, 114, 4, 114, 88, 209, 115, 147, 136,
+    249, 29, 12, 29, 3, 82, 20, 111, 148, 214, 220, 129, 139, 165, 228, 242, 175, 16, 205, 158, 59,
+    56, 33, 55, 10, 244, 184, 213, 238, 120, 89, 82,
 ]);
 
-// 8XhNoDjjNoLP5Rys1pBJKGdE8acEC1HJsWGkfkMt6JP1
+// HtRAgo77BEsDBpKhebPtgfMgphVbe1Nyh1D2ZuVdAgUx
 const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
-    111, 222, 226, 197, 174, 64, 51, 181, 235, 205, 56, 138, 76, 105, 173, 158, 191, 43, 143, 141,
-    91, 145, 78, 45, 130, 86, 102, 175, 146, 188, 82, 152,
+    250, 230, 240, 19, 182, 177, 177, 53, 180, 11, 57, 236, 246, 189, 25, 184, 26, 255, 21, 203,
+    103, 197, 254, 15, 15, 235, 161, 229, 171, 178, 211, 249,
 ]);
 
 const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
