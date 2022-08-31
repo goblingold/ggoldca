@@ -17,6 +17,12 @@ const PADDING_AS_U64: usize = 10;
 pub struct VaultAccount {
     /// Vault version
     pub version: u8,
+
+    /// The vault is active from the UI
+    pub is_active_from_ui: bool,
+    /// Deposits/withdraw are paused for this vault
+    pub is_paused: bool,
+
     /// Vault number for a given whirlpool
     pub id: u8,
 
@@ -52,6 +58,8 @@ pub struct VaultAccount {
 
 impl VaultAccount {
     pub const SIZE: usize = 1
+        + 1
+        + 1
         + 1
         + Bumps::SIZE
         + 32

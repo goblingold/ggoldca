@@ -30,6 +30,8 @@ pub const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
 pub const FEE_SCALE: u64 = 100;
 pub const VAULT_VERSION: u8 = 1;
 
+pub const IS_PAUSED: bool = false;
+
 #[program]
 pub mod ggoldca {
 
@@ -69,10 +71,12 @@ pub mod ggoldca {
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn rebalance(ctx: Context<Rebalance>) -> Result<()> {
         instructions::rebalance::handler(ctx)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn deposit(
         ctx: Context<DepositWithdraw>,
         lp_amount: u64,
@@ -82,6 +86,7 @@ pub mod ggoldca {
         instructions::deposit::handler(ctx, lp_amount, max_amount_a, max_amount_b)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn withdraw(
         ctx: Context<DepositWithdraw>,
         lp_amount: u64,
@@ -91,22 +96,27 @@ pub mod ggoldca {
         instructions::withdraw::handler(ctx, lp_amount, min_amount_a, min_amount_b)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn collect_fees(ctx: Context<CollectFees>) -> Result<()> {
         instructions::collect_fees::handler(ctx)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn collect_rewards(ctx: Context<CollectRewards>, reward_index: u8) -> Result<()> {
         instructions::collect_rewards::handler(ctx, reward_index)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn swap_rewards<'info>(ctx: Context<'_, '_, '_, 'info, SwapRewards<'info>>) -> Result<()> {
         instructions::swap_rewards::handler(ctx)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn transfer_rewards(ctx: Context<TransferRewards>) -> Result<()> {
         instructions::transfer_rewards::handler(ctx)
     }
 
+    #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
     }
@@ -116,5 +126,12 @@ pub mod ggoldca {
 fn is_admin(key: &Pubkey) -> Result<()> {
     #[cfg(not(feature = "test"))]
     require!(key == &ADMIN_PUBKEY, ErrorCode::UnauthorizedUser);
+    Ok(())
+}
+
+/// Check if the smart contract is paused either globally or at the vault level
+fn is_paused(is_vault_paused: bool) -> Result<()> {
+    require!(!IS_PAUSED, ErrorCode::PausedSmartContract);
+    require!(!is_vault_paused, ErrorCode::PausedVault);
     Ok(())
 }

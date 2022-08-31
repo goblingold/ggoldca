@@ -19,6 +19,10 @@ pub enum ErrorCode {
 
     #[msg("Unauthorized user")]
     UnauthorizedUser,
+    #[msg("The smart contract is paused")]
+    PausedSmartContract,
+    #[msg("The provided vault is paused")]
+    PausedVault,
 
     #[msg("Fee cannot exceed FEE_SCALE")]
     InvalidFee,
