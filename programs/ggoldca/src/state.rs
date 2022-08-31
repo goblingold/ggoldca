@@ -17,6 +17,12 @@ const PADDING_AS_U64: usize = 10;
 pub struct VaultAccount {
     /// Vault version
     pub version: u8,
+
+    /// The vault is active from the UI
+    pub is_active_from_ui: bool,
+    /// The smart contract is paused for this vault
+    pub is_paused: bool,
+
     /// Vault number for a given whirlpool
     pub id: u8,
 
@@ -30,11 +36,17 @@ pub struct VaultAccount {
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
 
-    /// Last reinvestment liquidity increase
-    pub last_liquidity_increase: u128,
-
     /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
+
+    /// Minimum number of elapsed slots required for reinvesting
+    pub min_slots_for_reinvest: u64,
+
+    /// Last reinvestment slot
+    pub last_reinvestment_slot: u64,
+
+    /// Last reinvestment liquidity increase
+    pub last_liquidity_increase: u128,
 
     /// Total rewards earned by the vault
     pub earned_rewards_token_a: u64,
@@ -43,28 +55,32 @@ pub struct VaultAccount {
     /// The market where to sell the rewards
     pub market_rewards: [MarketRewardsInfo; WHIRLPOOL_NUM_REWARDS],
 
-    /// Additional padding
-    pub _padding: [u64; PADDING_AS_U64],
-
     /// Information about the opened positions (max = MAX_POSITIONS)
     pub positions: Vec<PositionInfo>,
+
+    /// Additional padding
+    pub _padding: [u64; PADDING_AS_U64],
 }
 
 impl VaultAccount {
     pub const SIZE: usize = 1
         + 1
+        + 1
+        + 1
         + Bumps::SIZE
         + 32
         + 32
         + 32
+        + 8
+        + 8
+        + 8
         + 16
         + 8
         + 8
-        + 8
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
-        + 8 * PADDING_AS_U64
         + 4
-        + MAX_POSITIONS * PositionInfo::SIZE;
+        + MAX_POSITIONS * PositionInfo::SIZE
+        + 8 * PADDING_AS_U64;
 
     /// Create a new vault
     pub fn new(params: VaultAccountParams) -> Self {
@@ -76,6 +92,7 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             fee: params.fee,
+            min_slots_for_reinvest: params.min_slots_for_reinvest,
             ..Self::default()
         }
     }
@@ -127,6 +144,9 @@ pub struct VaultAccountParams {
 
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
+
+    /// Minimum number of elapsed slots required for reinvesting
+    pub min_slots_for_reinvest: u64,
 }
 
 /// PDA bump seeds

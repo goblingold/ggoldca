@@ -49,7 +49,7 @@ pub struct DepositWithdraw<'info> {
         mut,
         token::authority = user_signer.key()
     )]
-    pub user_lp_token_account: Account<'info, TokenAccount>,
+    pub user_lp_token_account: Box<Account<'info, TokenAccount>>,
     #[account(
         mut,
         token::authority = user_signer.key(),

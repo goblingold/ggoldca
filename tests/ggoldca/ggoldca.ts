@@ -50,6 +50,7 @@ describe("ggoldca", () => {
       userSigner,
       vaultId,
       fee: new anchor.BN(10),
+      min_slot: new anchor.BN(0),
     });
 
     const tx = ixs.reduce(
@@ -635,6 +636,39 @@ describe("ggoldca", () => {
     }
   });
 
+  it("set min_slots for reinvest", async () => {
+    const minSlots = new anchor.BN(10_000);
+
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setMinSlotsForReinvestIx({
+        userSigner,
+        vaultId,
+        minSlots,
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set min_slots", txSig);
+  });
+
+  it("failing reinvest wo enought slots", async () => {
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.reinvestIx({ vaultId })
+    );
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "NotEnoughSlots")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("not enough slots for reinvest");
+    }
+  });
+
   it("Withdraw", async () => {
     const lpAmount = new anchor.BN(3_000_000);
     const minAmountA = new anchor.BN(0);
@@ -669,6 +703,49 @@ describe("ggoldca", () => {
     const { vaultAccount } = await ggClient.pdaAccounts.getVaultKeys(vaultId);
     const data = await program.account.vaultAccount.fetch(vaultAccount);
     assert.ok(data.fee.toString() === fee.toString());
+  });
+
+  it("set vault pause", async () => {
+    const isPaused = true;
+
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setVaultPauseStatus({
+        userSigner,
+        vaultId,
+        isPaused,
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set vault pause", txSig);
+  });
+
+  it("failing deposit with paused vault", async () => {
+    const lpAmount = new anchor.BN(1_000_000_000_000);
+    const maxAmountA = new anchor.BN(1_000_000_000_000);
+    const maxAmountB = new anchor.BN(1_000_000_000_000);
+
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.depositIx({
+        lpAmount,
+        maxAmountA,
+        maxAmountB,
+        userSigner,
+        vaultId,
+      })
+    );
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "PausedVault")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("cannot deposit with pause vault");
+    }
   });
 
   it("vault_account", async () => {

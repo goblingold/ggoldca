@@ -21,6 +21,7 @@ struct ReinvestEvent {
     lp_supply: u64,
     liquidity: u128,
     liquidity_increase: u128,
+    elapsed_slots: u64,
 }
 
 #[derive(Accounts)]
@@ -151,6 +152,17 @@ impl<'info> Reinvest<'info> {
 }
 
 pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
+    let last_slot = ctx.accounts.vault_account.last_reinvestment_slot;
+    let current_slot = Clock::get()?.slot;
+    let elapsed_slots = current_slot.safe_sub(last_slot)?;
+
+    require!(
+        elapsed_slots >= ctx.accounts.vault_account.min_slots_for_reinvest,
+        ErrorCode::NotEnoughSlots
+    );
+
+    ctx.accounts.vault_account.last_reinvestment_slot = current_slot;
+
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
@@ -261,6 +273,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         lp_supply: ctx.accounts.vault_lp_token_mint_pubkey.supply,
         liquidity: liquidity_after,
         liquidity_increase,
+        elapsed_slots
     });
 
     Ok(())
