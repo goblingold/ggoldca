@@ -156,7 +156,6 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     let current_slot = Clock::get()?.slot;
     let elapsed_slots = current_slot.safe_sub(last_slot)?;
 
-    #[cfg(not(feature = "test"))]
     require!(
         elapsed_slots >= ctx.accounts.vault_account.min_slots_for_reinvest,
         ErrorCode::NotEnoughSlots
