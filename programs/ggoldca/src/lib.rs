@@ -43,6 +43,19 @@ pub mod ggoldca {
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_vault_pause_status(
+        ctx: Context<SetVaultPauseStatus>,
+        is_paused: bool,
+    ) -> Result<()> {
+        instructions::set_vault_pause_status::handler(ctx, is_paused)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_vault_ui_status(ctx: Context<SetVaultUiStatus>, is_active: bool) -> Result<()> {
+        instructions::set_vault_ui_status::handler(ctx, is_active)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn open_position(
         ctx: Context<OpenPosition>,
         bump: u8,

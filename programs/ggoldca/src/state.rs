@@ -20,7 +20,7 @@ pub struct VaultAccount {
 
     /// The vault is active from the UI
     pub is_active_from_ui: bool,
-    /// Deposits/withdraw are paused for this vault
+    /// The smart contract is paused for this vault
     pub is_paused: bool,
 
     /// Vault number for a given whirlpool
