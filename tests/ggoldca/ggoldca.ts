@@ -50,6 +50,7 @@ describe("ggoldca", () => {
       userSigner,
       vaultId,
       fee: new anchor.BN(10),
+      min_slot: new anchor.BN(0),
     });
 
     const tx = ixs.reduce(
@@ -632,6 +633,39 @@ describe("ggoldca", () => {
       assert.ok(false);
     } catch (err) {
       assert.include(err.toString(), "6005");
+    }
+  });
+
+  it("set min_slots for reinvest", async () => {
+    const minSlots = new anchor.BN(10_000);
+
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.setMinSlotsForReinvestIx({
+        userSigner,
+        vaultId,
+        minSlots,
+      })
+    );
+
+    const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+    console.log("set min_slots", txSig);
+  });
+
+  it("failing reinvest wo enought slots", async () => {
+    const tx = new anchor.web3.Transaction().add(
+      await ggClient.reinvestIx({ vaultId })
+    );
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "NotEnoughSlots")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("not enough slots for reinvest");
     }
   });
 

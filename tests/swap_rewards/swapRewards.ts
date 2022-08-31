@@ -40,6 +40,7 @@ describe("swapRewards", () => {
       userSigner,
       vaultId,
       fee: new anchor.BN(10),
+      min_slot: new anchor.BN(0),
     });
 
     const tx = ixs.reduce(
