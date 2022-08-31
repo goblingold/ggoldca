@@ -23,6 +23,8 @@ pub enum ErrorCode {
     PausedSmartContract,
     #[msg("The provided vault is paused")]
     PausedVault,
+    #[msg("Not enough elapsed slots since last call")]
+    NotEnoughSlots,
 
     #[msg("Fee cannot exceed FEE_SCALE")]
     InvalidFee,

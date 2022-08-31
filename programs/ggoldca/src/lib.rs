@@ -38,8 +38,13 @@ pub mod ggoldca {
     use super::*;
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
-    pub fn initialize_vault(ctx: Context<InitializeVault>, id: u8, fee: u64) -> Result<()> {
-        instructions::initialize_vault::handler(ctx, id, fee)
+    pub fn initialize_vault(
+        ctx: Context<InitializeVault>,
+        id: u8,
+        fee: u64,
+        min_slots_for_reinvest: u64,
+    ) -> Result<()> {
+        instructions::initialize_vault::handler(ctx, id, fee, min_slots_for_reinvest)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
@@ -81,6 +86,14 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn set_vault_fee(ctx: Context<SetVaultFee>, fee: u64) -> Result<()> {
         instructions::set_vault_fee::handler(ctx, fee)
+    }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_min_slots_for_reinvest(
+        ctx: Context<SetMinSlotsForReinvest>,
+        min_slots: u64,
+    ) -> Result<()> {
+        instructions::set_min_slots_for_reinvest::handler(ctx, min_slots)
     }
 
     #[access_control(is_admin(ctx.accounts.user_signer.key))]

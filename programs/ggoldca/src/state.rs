@@ -36,11 +36,17 @@ pub struct VaultAccount {
     /// Pool input token_b mint address
     pub input_token_b_mint_pubkey: Pubkey,
 
-    /// Last reinvestment liquidity increase
-    pub last_liquidity_increase: u128,
-
     /// Fee percentage using FEE_SCALE. Fee applied on earnings
     pub fee: u64,
+
+    /// Minimum number of elapsed slots required for reinvesting
+    pub min_slots_for_reinvest: u64,
+
+    /// Last reinvestment slot
+    pub last_reinvestment_slot: u64,
+
+    /// Last reinvestment liquidity increase
+    pub last_liquidity_increase: u128,
 
     /// Total rewards earned by the vault
     pub earned_rewards_token_a: u64,
@@ -65,8 +71,10 @@ impl VaultAccount {
         + 32
         + 32
         + 32
-        + 16
         + 8
+        + 8
+        + 8
+        + 16
         + 8
         + 8
         + WHIRLPOOL_NUM_REWARDS * MarketRewardsInfo::SIZE
@@ -84,6 +92,7 @@ impl VaultAccount {
             input_token_a_mint_pubkey: params.input_token_a_mint_pubkey,
             input_token_b_mint_pubkey: params.input_token_b_mint_pubkey,
             fee: params.fee,
+            min_slots_for_reinvest: params.min_slots_for_reinvest,
             ..Self::default()
         }
     }
@@ -135,6 +144,9 @@ pub struct VaultAccountParams {
 
     /// Fee percetange using FEE_SCALE
     pub fee: u64,
+
+    /// Minimum number of elapsed slots required for reinvesting
+    pub min_slots_for_reinvest: u64,
 }
 
 /// PDA bump seeds
