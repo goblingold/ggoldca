@@ -12,11 +12,18 @@ pub mod state;
 
 declare_id!("NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT");
 
-// DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
-pub const ADMIN_PUBKEY: Pubkey = Pubkey::new_from_array([
-    191, 17, 77, 109, 253, 243, 16, 188, 64, 67, 249, 18, 51, 62, 173, 81, 128, 208, 121, 29, 74,
-    57, 94, 247, 114, 4, 114, 88, 209, 115, 147, 136,
-]);
+pub const ADMIN_PUBKEYS: [Pubkey; 2] = [
+    // DrrB1p8sxhwBZ3cXE8u5t2GxqEcTNuwAm7RcrQ8Yqjod
+    Pubkey::new_from_array([
+        191, 17, 77, 109, 253, 243, 16, 188, 64, 67, 249, 18, 51, 62, 173, 81, 128, 208, 121, 29,
+        74, 57, 94, 247, 114, 4, 114, 88, 209, 115, 147, 136,
+    ]),
+    // HmSCy7wPWYRtydb6tM6zimoquTftjCJXscoREJ5WVHWH
+    Pubkey::new_from_array([
+        249, 29, 12, 29, 3, 82, 20, 111, 148, 214, 220, 129, 139, 165, 228, 242, 175, 16, 205, 158,
+        59, 56, 33, 55, 10, 244, 184, 213, 238, 120, 89, 82,
+    ]),
+];
 
 // 8XhNoDjjNoLP5Rys1pBJKGdE8acEC1HJsWGkfkMt6JP1
 pub const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
@@ -151,7 +158,11 @@ pub mod ggoldca {
 /// Check if target key is authorized
 fn is_admin(key: &Pubkey) -> Result<()> {
     #[cfg(not(feature = "test"))]
-    require!(key == &ADMIN_PUBKEY, ErrorCode::UnauthorizedUser);
+    require!(
+        ADMIN_PUBKEYS.iter().any(|admin_key| admin_key == key),
+        ErrorCode::UnauthorizedUser
+    );
+
     Ok(())
 }
 
