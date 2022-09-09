@@ -162,15 +162,8 @@ pub mod ggoldca {
         token_uri: String,
         first_time: bool,
     ) -> Result<()> {
-        instructions::set_token_metadata::exec(
-            ctx,
-            token_name,
-            token_symbol,
-            token_uri,
-            first_time,
-        )
+        instructions::set_token_metadata::exec(ctx, token_name, token_symbol, token_uri, first_time)
     }
-
 }
 
 /// Check if target key is authorized
