@@ -157,7 +157,6 @@ pub mod ggoldca {
     #[access_control(is_admin(ctx.accounts.user_signer.key))]
     pub fn set_token_metadata(
         ctx: Context<SetTokenMetadata>,
-        mint_pda_seed: String,
         token_name: String,
         token_symbol: String,
         token_uri: String,
@@ -165,7 +164,6 @@ pub mod ggoldca {
     ) -> Result<()> {
         instructions::set_token_metadata::exec(
             ctx,
-            mint_pda_seed,
             token_name,
             token_symbol,
             token_uri,
