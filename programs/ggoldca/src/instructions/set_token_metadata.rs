@@ -17,11 +17,9 @@ use {
 pub struct SetTokenMetadata<'info> {
     /// CHECK: Metadata key (pda of ['metadata', program id, mint id])
     #[account(mut,
-      address =  Pubkey::find_program_address(&[
-          b"metadata", 
-          mpl_token_metadata::id().as_ref(),
-          vault_lp_token_mint_pubkey.key().as_ref()
-      ], &mpl_token_metadata::id()).0
+      seeds = [b"metadata", mpl_token_metadata::id().as_ref(), vault_lp_token_mint_pubkey.key().as_ref()],
+      seeds::program = mpl_token_metadata::id(),
+      bump,
     )]
     pub metadata_account: AccountInfo<'info>,
 
@@ -53,7 +51,7 @@ pub struct SetTokenMetadata<'info> {
     pub rent: Sysvar<'info, Rent>,
 }
 
-pub fn exec(
+pub fn handler(
     ctx: Context<SetTokenMetadata>,
     token_name: String,
     token_symbol: String,
