@@ -1,6 +1,7 @@
 use crate::error::ErrorCode;
 use crate::VAULT_VERSION;
 use anchor_lang::prelude::*;
+use switchboard_v2::decimal::SwitchboardDecimal;
 
 /// Number of simultaneous positions allowed
 pub const MAX_POSITIONS: usize = 3;
@@ -248,4 +249,38 @@ impl Default for MarketRewards {
     fn default() -> Self {
         MarketRewards::NotSet
     }
+}
+
+/// Lp price account
+#[account]
+#[derive(Default, Debug)]
+pub struct LpPriceAccount {
+    /// Account version
+    pub version: u8,
+
+    /// Bump seed
+    pub bump: u8,
+
+    /// Switchboard aggregator token account for token_a
+    pub switchboard_price_token_a_pubkey: Pubkey,
+    /// Switchboard aggregator token account for token_b
+    pub switchboard_price_token_b_pubkey: Pubkey,
+
+    /// Number of decimals of token_a mint
+    pub token_a_mint_decimals: u8,
+    /// Number of decimals of token_b mint
+    pub token_b_mint_decimals: u8,
+
+    /// Latest slot the price was updated
+    pub last_updated_slot: u64,
+
+    /// Price of the lp
+    pub price: u64,
+
+    /// Error in the price
+    pub std_dev: u64,
+}
+
+impl LpPriceAccount {
+    pub const SIZE: usize = 1 + 1 + 32 + 32 + 1 + 1 + 8 + 8 + 8;
 }
