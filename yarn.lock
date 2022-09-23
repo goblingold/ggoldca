@@ -1437,10 +1437,10 @@ get-symbol-description@^1.0.0:
     call-bind "^1.0.2"
     get-intrinsic "^1.1.1"
 
-ggoldca-sdk@^0.0.13:
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/ggoldca-sdk/-/ggoldca-sdk-0.0.13.tgz#74bf4d5b2bdbfe11100ef5d389d2573103595014"
-  integrity sha512-ajlzDIoOwJc52qkFZaMnPh8a6c7BwwiA1KSQ4Ri4vO+p5DH4U5H0+IwvNYOu303TZFvNO8sVuMHb14Aoxa0yiw==
+ggoldca-sdk@^0.0.23:
+  version "0.0.23"
+  resolved "https://registry.yarnpkg.com/ggoldca-sdk/-/ggoldca-sdk-0.0.23.tgz#def3acb993fc896060e5f6866d1f0ea17e380255"
+  integrity sha512-zVlHxfI4K6qY/YKVcGbO5wgcIiefOwUpfZpMqT693Ql3zboSKBxYEdly6pmKy6KU+2ya43y8jkghvDLGYWdPaA==
   dependencies:
     "@orca-so/sdk" "^1.2.25"
     "@orca-so/whirlpools-sdk" "^0.2.3"

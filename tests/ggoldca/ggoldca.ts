@@ -318,20 +318,11 @@ describe("ggoldca", () => {
     const tx = new anchor.web3.Transaction()
       .add(COMPUTE_BUDGET_IX)
       .add(
-        await program.methods
-          .rebalance()
-          .accounts({
-            userSigner,
-            vaultAccount,
-            vaultInputTokenAAccount,
-            vaultInputTokenBAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-            tokenVaultA: poolData.tokenVaultA,
-            tokenVaultB: poolData.tokenVaultB,
-            currentPosition,
-            newPosition,
-          })
-          .transaction()
+        await ggClient.rebalanceIx({
+          userSigner,
+          vaultId,
+          newPosition: position2,
+        })
       )
       .add(
         await program.methods
