@@ -20,15 +20,15 @@
 \section{Reinvest}
 Let us consider that the position has a ratio
 \( r = {\text{tokens}_a}/{\text{tokens}_b} \)
-and that asset \(b\) is trading at price \(p\) relative to asset \(a\).
+and that asset \(a\) is trading at price \(p\) relative to asset \(b\).
 Given the tokens amounts \((a,b)\), the amounts \(\delta_i\) that should be swapped in order to maintain the same ratio will be determined by
 \begin{equation}
 	\left.
 	\begin{aligned}
 		r        & = \frac{a - \delta_a}{b+\delta_b} \\
-		\delta_a & = \delta_b  \cdot p
+		\delta_b & = \delta_a  \cdot p
 	\end{aligned}
-	\right\} \quad \delta_a  = \frac{a - r b}{1 + r/p}.
+	\right\} \quad \delta_a  = \frac{a - r b}{1 + r \times p}.
 \end{equation}
 
 
