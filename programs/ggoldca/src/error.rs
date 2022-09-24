@@ -57,6 +57,9 @@ pub enum ErrorCode {
     #[msg("Position does not exist")]
     PositionNonExistence,
 
+    #[msg("Cannot rebalance into the active position")]
+    RebalanceIntoActivePosition,
+
     #[msg("Not enough fees generated yet")]
     NotEnoughFees,
     #[msg("Not enough rewards generated yet")]

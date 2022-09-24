@@ -57,7 +57,8 @@ pub struct Rebalance<'info> {
     pub current_position: PositionAccounts<'info>,
     #[account(
         constraint = new_position.whirlpool.key() == vault_account.whirlpool_id.key(),
-        constraint = vault_account.position_address_exists(new_position.position.key()) @ ErrorCode::PositionNotActive
+        constraint = vault_account.position_address_exists(new_position.position.key()) @ ErrorCode::PositionNotActive,
+        constraint = new_position.position.key() != current_position.position.key() @ ErrorCode::RebalanceIntoActivePosition
     )]
     pub new_position: PositionAccounts<'info>,
 
