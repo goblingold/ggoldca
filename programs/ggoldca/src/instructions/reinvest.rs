@@ -193,40 +193,50 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
         let ratio_x64 = (1_u128 << bit_math::Q64_RESOLUTION)
             .safe_mul_div(position_amount_a.into(), position_amount_b.into())?;
 
-        let ratio_x192 =
-            U256::from(ratio_x64) << bit_math::Q64_RESOLUTION << bit_math::Q64_RESOLUTION;
-
-        let ratio_to_price_x64 = ratio_x192
-            .safe_div(price_x128)?
-            .try_into_u128()
-            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
+        let ratio_times_price_x192 = U256::from(ratio_x64)
+            .checked_mul(price_x128)
+            .ok_or(ErrorCode::MathOverflowMul)?;
 
         let ratio_amount_b_x64 = ratio_x64.safe_mul(amount_b.into())?;
         let amount_a_x64 = u128::from(amount_a) << bit_math::Q64_RESOLUTION;
 
-        let numerator = if amount_a_x64 > ratio_amount_b_x64 {
+        let is_delta_a_positive = amount_a_x64 > ratio_amount_b_x64;
+
+        let numerator_x64 = if is_delta_a_positive {
             amount_a_x64.safe_sub(ratio_amount_b_x64)?
         } else {
             ratio_amount_b_x64.safe_sub(amount_a_x64)?
         };
 
-        let amount_to_swap: u64 = numerator
-            .safe_div((1_u128 << bit_math::Q64_RESOLUTION).safe_add(ratio_to_price_x64)?)?
+        let numerator_x192 =
+            U256::from(numerator_x64) << bit_math::Q64_RESOLUTION << bit_math::Q64_RESOLUTION;
+
+        let denominator_x192 = (U256::from(1)
+            << bit_math::Q64_RESOLUTION
+            << bit_math::Q64_RESOLUTION
+            << bit_math::Q64_RESOLUTION)
+            .checked_add(ratio_times_price_x192)
+            .ok_or(ErrorCode::MathOverflowAdd)?;
+
+        let amount_to_swap: u64 = numerator_x192
+            .checked_div(denominator_x192)
+            .ok_or(ErrorCode::MathZeroDivision)?
             .try_into()
             .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
 
-        let (sqrt_price_limit, is_swap_from_a_to_b) = if amount_a_x64 > ratio_amount_b_x64 {
-            (MIN_SQRT_PRICE_X64, true)
-        } else {
-            (MAX_SQRT_PRICE_X64, false)
-        };
+        let (other_amount_th, sqrt_price_limit, is_amount_specified_input, is_swap_from_a_to_b) =
+            if is_delta_a_positive {
+                (1, MIN_SQRT_PRICE_X64, true, true)
+            } else {
+                (u64::MAX, MAX_SQRT_PRICE_X64, false, false)
+            };
 
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
             amount_to_swap,
-            1,
+            other_amount_th,
             sqrt_price_limit,
-            true,
+            is_amount_specified_input,
             is_swap_from_a_to_b,
         )?;
 
