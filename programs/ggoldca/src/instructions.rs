@@ -13,6 +13,7 @@ pub mod set_vault_pause_status;
 pub mod set_vault_ui_status;
 pub mod swap_rewards;
 pub mod transfer_rewards;
+pub mod update_lp_price;
 pub mod withdraw;
 
 pub use close_position::*;
@@ -30,4 +31,5 @@ pub use set_vault_pause_status::*;
 pub use set_vault_ui_status::*;
 pub use swap_rewards::*;
 pub use transfer_rewards::*;
+pub use update_lp_price::*;
 pub use withdraw::*;

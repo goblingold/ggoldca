@@ -33,9 +33,11 @@ pub const TREASURY_PUBKEY: Pubkey = Pubkey::new_from_array([
 
 pub const VAULT_ACCOUNT_SEED: &[u8; 5] = b"vault";
 pub const VAULT_LP_TOKEN_MINT_SEED: &[u8; 4] = b"mint";
+pub const VAULT_LP_TOKEN_PRICE_SEED: &[u8; 5] = b"price";
 
 pub const FEE_SCALE: u64 = 100;
 pub const VAULT_VERSION: u8 = 1;
+pub const PRICE_VERSION: u8 = 1;
 
 pub const IS_PAUSED: bool = false;
 
@@ -152,6 +154,10 @@ pub mod ggoldca {
     #[access_control(is_paused(ctx.accounts.vault_account.is_paused))]
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
+    }
+
+    pub fn update_lp_price(ctx: Context<UpdateLpPrice>) -> Result<()> {
+        instructions::update_lp_price::handler(ctx)
     }
 }
 

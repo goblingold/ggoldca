@@ -16,6 +16,8 @@ pub enum ErrorCode {
 
     #[msg("Invalid vault version")]
     InvalidVaultVersion,
+    #[msg("Invalid LP price version")]
+    InvalidLpPriceVersion,
 
     #[msg("Unauthorized user")]
     UnauthorizedUser,
