@@ -153,6 +153,23 @@ pub mod ggoldca {
     pub fn reinvest(ctx: Context<Reinvest>) -> Result<()> {
         instructions::reinvest::handler(ctx)
     }
+
+    #[access_control(is_admin(ctx.accounts.user_signer.key))]
+    pub fn set_token_metadata(
+        ctx: Context<SetTokenMetadata>,
+        token_name: String,
+        token_symbol: String,
+        token_uri: String,
+        first_time: bool,
+    ) -> Result<()> {
+        instructions::set_token_metadata::handler(
+            ctx,
+            token_name,
+            token_symbol,
+            token_uri,
+            first_time,
+        )
+    }
 }
 
 /// Check if target key is authorized
