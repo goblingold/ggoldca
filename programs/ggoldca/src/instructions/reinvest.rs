@@ -178,76 +178,81 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             .position
             .token_amounts_from_liquidity(ctx.accounts.position.liquidity()?)?;
 
-        let price_x128: U256 = {
-            use anchor_lang_for_whirlpool::AccountDeserialize;
-            use std::borrow::Borrow;
-
-            let acc_data_slice: &[u8] = &ctx.accounts.position.whirlpool.try_borrow_data()?;
-            let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
-                &mut acc_data_slice.borrow(),
-            )?;
-
-            U256::from(pool.sqrt_price).pow(2.into())
-        };
-
-        let ratio_x64 = (1_u128 << bit_math::Q64_RESOLUTION)
-            .safe_mul_div(position_amount_a.into(), position_amount_b.into())?;
-
-        let ratio_times_price_x192 = U256::from(ratio_x64)
-            .checked_mul(price_x128)
-            .ok_or(ErrorCode::MathOverflowMul)?;
-
-        let ratio_amount_b_x64 = ratio_x64.safe_mul(amount_b.into())?;
-        let amount_a_x64 = u128::from(amount_a) << bit_math::Q64_RESOLUTION;
-
-        let is_delta_a_positive = amount_a_x64 > ratio_amount_b_x64;
-
-        let numerator_x64 = if is_delta_a_positive {
-            amount_a_x64.safe_sub(ratio_amount_b_x64)?
+        let swap_params = if position_amount_a == 0 {
+            swap_params_from_a_to_b(amount_a)
+        } else if position_amount_b == 0 {
+            swap_params_from_b_to_a(amount_b)
         } else {
-            ratio_amount_b_x64.safe_sub(amount_a_x64)?
-        };
+            let price_x128: U256 = {
+                use anchor_lang_for_whirlpool::AccountDeserialize;
+                use std::borrow::Borrow;
 
-        let numerator_x192 =
-            U256::from(numerator_x64) << bit_math::Q64_RESOLUTION << bit_math::Q64_RESOLUTION;
+                let acc_data_slice: &[u8] = &ctx.accounts.position.whirlpool.try_borrow_data()?;
+                let pool = whirlpool::state::whirlpool::Whirlpool::try_deserialize(
+                    &mut acc_data_slice.borrow(),
+                )?;
 
-        let denominator_x192 = (U256::from(1)
-            << bit_math::Q64_RESOLUTION
-            << bit_math::Q64_RESOLUTION
-            << bit_math::Q64_RESOLUTION)
-            .checked_add(ratio_times_price_x192)
-            .ok_or(ErrorCode::MathOverflowAdd)?;
-
-        let amount_to_swap: u64 = numerator_x192
-            .checked_div(denominator_x192)
-            .ok_or(ErrorCode::MathZeroDivision)?
-            .try_into()
-            .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
-
-        let (other_amount_th, sqrt_price_limit, is_amount_specified_input, is_swap_from_a_to_b) =
-            if is_delta_a_positive {
-                (1, MIN_SQRT_PRICE_X64, true, true)
-            } else {
-                (u64::MAX, MAX_SQRT_PRICE_X64, false, false)
+                U256::from(pool.sqrt_price).pow(2.into())
             };
+
+            let ratio_x64 = (1_u128 << bit_math::Q64_RESOLUTION)
+                .safe_mul_div(position_amount_a.into(), position_amount_b.into())?;
+
+            let ratio_times_price_x192 = U256::from(ratio_x64)
+                .checked_mul(price_x128)
+                .ok_or(ErrorCode::MathOverflowMul)?;
+
+            let ratio_amount_b_x64 = ratio_x64.safe_mul(amount_b.into())?;
+            let amount_a_x64 = u128::from(amount_a) << bit_math::Q64_RESOLUTION;
+
+            let is_delta_a_positive = amount_a_x64 > ratio_amount_b_x64;
+
+            let numerator_x64 = if is_delta_a_positive {
+                amount_a_x64.safe_sub(ratio_amount_b_x64)?
+            } else {
+                ratio_amount_b_x64.safe_sub(amount_a_x64)?
+            };
+
+            let numerator_x192 =
+                U256::from(numerator_x64) << bit_math::Q64_RESOLUTION << bit_math::Q64_RESOLUTION;
+
+            let denominator_x192 = (U256::from(1)
+                << bit_math::Q64_RESOLUTION
+                << bit_math::Q64_RESOLUTION
+                << bit_math::Q64_RESOLUTION)
+                .checked_add(ratio_times_price_x192)
+                .ok_or(ErrorCode::MathOverflowAdd)?;
+
+            let amount_to_swap: u64 = numerator_x192
+                .checked_div(denominator_x192)
+                .ok_or(ErrorCode::MathZeroDivision)?
+                .try_into()
+                .map_err(|_| error!(ErrorCode::MathOverflowConversion))?;
+
+            if is_delta_a_positive {
+                swap_params_from_a_to_b(amount_to_swap)
+            } else {
+                swap_params_from_b_to_a(amount_to_swap)
+            }
+        };
 
         whirlpool::cpi::swap(
             ctx.accounts.swap_ctx().with_signer(signer),
-            amount_to_swap,
-            other_amount_th,
-            sqrt_price_limit,
-            is_amount_specified_input,
-            is_swap_from_a_to_b,
+            swap_params.amount,
+            swap_params.other_amount_threshold,
+            swap_params.sqrt_price_limit,
+            swap_params.amount_specified_is_input,
+            swap_params.a_to_b,
         )?;
 
         ctx.accounts.vault_input_token_a_account.reload()?;
         ctx.accounts.vault_input_token_b_account.reload()?;
 
-        let event = if is_swap_from_a_to_b {
+        let event = if swap_params.a_to_b {
             SwapEvent {
                 vault_account: ctx.accounts.vault_account.key(),
                 mint_in: ctx.accounts.vault_input_token_a_account.mint,
-                amount_in: amount_to_swap,
+                amount_in: swap_params.amount,
                 mint_out: ctx.accounts.vault_input_token_b_account.mint,
                 amount_out: ctx
                     .accounts
@@ -259,7 +264,7 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
             SwapEvent {
                 vault_account: ctx.accounts.vault_account.key(),
                 mint_in: ctx.accounts.vault_input_token_b_account.mint,
-                amount_in: amount_to_swap,
+                amount_in: swap_params.amount,
                 mint_out: ctx.accounts.vault_input_token_a_account.mint,
                 amount_out: ctx
                     .accounts
@@ -287,4 +292,32 @@ pub fn handler(ctx: Context<Reinvest>) -> Result<()> {
     });
 
     Ok(())
+}
+
+struct SwapParams {
+    amount: u64,
+    other_amount_threshold: u64,
+    sqrt_price_limit: u128,
+    amount_specified_is_input: bool,
+    a_to_b: bool,
+}
+
+fn swap_params_from_a_to_b(amount_a: u64) -> SwapParams {
+    SwapParams {
+        amount: amount_a,
+        other_amount_threshold: 1,
+        sqrt_price_limit: MIN_SQRT_PRICE_X64,
+        amount_specified_is_input: true,
+        a_to_b: true,
+    }
+}
+
+fn swap_params_from_b_to_a(amount_b: u64) -> SwapParams {
+    SwapParams {
+        amount: amount_b,
+        other_amount_threshold: u64::MAX,
+        sqrt_price_limit: MAX_SQRT_PRICE_X64,
+        amount_specified_is_input: false,
+        a_to_b: false,
+    }
 }
