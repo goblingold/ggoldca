@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@orca-so/whirlpools-sdk": "^0.2.3",
-    "@project-serum/anchor": "^0.24.2",
+    "@project-serum/anchor": "^0.25.0",
     "@solana/spl-token-v2": "npm:@solana/spl-token@^0.2.0",
     "add": "^2.0.6",
     "decimal.js": "^10.4.2",
