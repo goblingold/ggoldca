@@ -5,7 +5,10 @@ use crate::math::safe_arithmetics::SafeMulDiv;
 use crate::state::VaultAccount;
 use crate::{VAULT_ACCOUNT_SEED, VAULT_VERSION};
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::{
+    solana_program::{pubkey::Pubkey, sysvar},
+    InstructionData,
+};
 use anchor_lang_for_whirlpool::context::CpiContext as CpiContextForWhirlpool;
 use anchor_spl::token::{Token, TokenAccount};
 
@@ -63,6 +66,10 @@ pub struct Rebalance<'info> {
     pub new_position: PositionAccounts<'info>,
 
     pub token_program: Program<'info, Token>,
+
+    #[account(address = sysvar::instructions::ID)]
+    /// CHECK: address is checked
+    pub instructions_acc: AccountInfo<'info>,
 }
 
 impl<'info> Rebalance<'info> {
@@ -91,6 +98,14 @@ impl<'info> Rebalance<'info> {
 }
 
 pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
+    require!(
+        is_next_ix_reinvest(&ctx.accounts.instructions_acc)?,
+        ErrorCode::MissingReinvest
+    );
+
+    // Allows a reinvest regardless of when the last one occurred
+    ctx.accounts.vault_account.last_reinvestment_slot = 0;
+
     let seeds = generate_seeds!(ctx.accounts.vault_account);
     let signer = &[&seeds[..]];
 
@@ -141,4 +156,16 @@ pub fn handler(ctx: Context<Rebalance>) -> Result<()> {
     });
 
     Ok(())
+}
+
+fn is_next_ix_reinvest(instructions_acc: &AccountInfo) -> Result<bool> {
+    let next_sighash: [u8; 8] = {
+        let next_ix = sysvar::instructions::get_instruction_relative(1, instructions_acc)?;
+        require!(next_ix.data.len() >= 8, ErrorCode::InvalidIxData);
+        next_ix.data[..8].try_into().unwrap()
+    };
+
+    let reinvest_sighash = crate::instruction::Reinvest {}.data();
+
+    Ok(reinvest_sighash == next_sighash)
 }
