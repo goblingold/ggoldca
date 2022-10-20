@@ -61,6 +61,9 @@ pub enum ErrorCode {
     RebalanceIntoActivePosition,
     #[msg("Missing reinvest instruction after rebalance")]
     MissingReinvest,
+
+    #[msg("Missing instruction")]
+    MissingIx,
     #[msg("Invalid instruction data")]
     InvalidIxData,
 
