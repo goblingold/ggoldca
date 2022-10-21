@@ -162,7 +162,12 @@ fn is_next_ix_reinvest(instructions_acc: &AccountInfo) -> Result<bool> {
     let next_sighash: [u8; 8] = {
         let next_ix = sysvar::instructions::get_instruction_relative(1, instructions_acc)
             .map_err(|_| error!(ErrorCode::MissingIx))?;
-        require!(next_ix.data.len() >= 8, ErrorCode::InvalidIxData);
+
+        require!(
+            next_ix.program_id == crate::ID && next_ix.data.len() >= 8,
+            ErrorCode::InvalidIxData
+        );
+
         next_ix.data[..8].try_into().unwrap()
     };
 
