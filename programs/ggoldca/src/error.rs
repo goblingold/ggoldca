@@ -59,6 +59,13 @@ pub enum ErrorCode {
 
     #[msg("Cannot rebalance into the active position")]
     RebalanceIntoActivePosition,
+    #[msg("Missing reinvest instruction after rebalance")]
+    MissingReinvest,
+
+    #[msg("Missing instruction")]
+    MissingIx,
+    #[msg("Invalid instruction data")]
+    InvalidIxData,
 
     #[msg("Not enough fees generated yet")]
     NotEnoughFees,

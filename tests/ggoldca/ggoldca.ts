@@ -282,7 +282,7 @@ describe("ggoldca", () => {
     console.log("Reinvest", txSig);
   });
 
-  it("Rebalance & reinvest", async () => {
+  it("Failing rebalance as single ix", async () => {
     const [currentPosition, newPosition] = await Promise.all(
       [position, position2].map((key) =>
         ggClient.pdaAccounts.getPositionAccounts(key, vaultId)
@@ -315,37 +315,129 @@ describe("ggoldca", () => {
       newPosition.whirlpool
     );
 
-    const tx = new anchor.web3.Transaction()
-      .add(COMPUTE_BUDGET_IX)
-      .add(
-        await ggClient.rebalanceIx({
-          userSigner,
-          vaultId,
-          newPosition: position2,
-        })
+    const tx = (
+      await ggClient.rebalanceIxs({
+        userSigner,
+        vaultId,
+        newPosition: position2,
+      })
+    )[0];
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "MissingIx")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("Failing rebalance");
+    }
+  });
+
+  it("Failing rebalance with non-reinvest ix", async () => {
+    const [currentPosition, newPosition] = await Promise.all(
+      [position, position2].map((key) =>
+        ggClient.pdaAccounts.getPositionAccounts(key, vaultId)
       )
-      .add(
-        await program.methods
-          .reinvest()
-          .accounts({
-            vaultAccount,
-            vaultLpTokenMintPubkey,
-            vaultInputTokenAAccount,
-            vaultInputTokenBAccount,
-            whirlpoolProgramId: wh.ORCA_WHIRLPOOL_PROGRAM_ID,
-            tokenVaultA: poolData.tokenVaultA,
-            tokenVaultB: poolData.tokenVaultB,
-            position: newPosition,
-            tickArray0: tickArrayAddresses[0],
-            tickArray1: tickArrayAddresses[1],
-            tickArray2: tickArrayAddresses[2],
-            oracle: oracleKeypair.publicKey,
-          })
-          .transaction()
-      );
+    );
+
+    const [
+      poolData,
+      {
+        vaultAccount,
+        vaultLpTokenMintPubkey,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
+      },
+    ] = await Promise.all([
+      ggClient.fetcher.getWhirlpoolData(POOL_ID),
+      ggClient.pdaAccounts.getVaultKeys(vaultId),
+    ]);
+
+    const oracleKeypair = wh.PDAUtil.getOracle(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID
+    );
+
+    const tickArrayAddresses = wh.PoolUtil.getTickArrayPublicKeysForSwap(
+      poolData.tickCurrentIndex,
+      poolData.tickSpacing,
+      true,
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      newPosition.whirlpool
+    );
+
+    const tx = (
+      await ggClient.rebalanceIxs({
+        userSigner,
+        vaultId,
+        newPosition: position2,
+      })
+    )[0];
+
+    tx.add(tx);
+
+    try {
+      const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
+      assert(false);
+    } catch (err) {
+      const errNumber = program.idl.errors
+        .filter((err) => err.name == "MissingReinvest")
+        .map((err) => err.code)[0];
+
+      assert.include(err.toString(), errNumber);
+      console.log("Failing rebalance");
+    }
+  });
+
+  it("Rebalance with reinvest", async () => {
+    const [currentPosition, newPosition] = await Promise.all(
+      [position, position2].map((key) =>
+        ggClient.pdaAccounts.getPositionAccounts(key, vaultId)
+      )
+    );
+
+    const [
+      poolData,
+      {
+        vaultAccount,
+        vaultLpTokenMintPubkey,
+        vaultInputTokenAAccount,
+        vaultInputTokenBAccount,
+      },
+    ] = await Promise.all([
+      ggClient.fetcher.getWhirlpoolData(POOL_ID),
+      ggClient.pdaAccounts.getVaultKeys(vaultId),
+    ]);
+
+    const oracleKeypair = wh.PDAUtil.getOracle(
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      POOL_ID
+    );
+
+    const tickArrayAddresses = wh.PoolUtil.getTickArrayPublicKeysForSwap(
+      poolData.tickCurrentIndex,
+      poolData.tickSpacing,
+      true,
+      wh.ORCA_WHIRLPOOL_PROGRAM_ID,
+      newPosition.whirlpool
+    );
+
+    const tx = (
+      await ggClient.rebalanceIxs({
+        userSigner,
+        vaultId,
+        newPosition: position2,
+      })
+    ).reduce(
+      (acc, ix) => acc.add(ix),
+      new anchor.web3.Transaction().add(COMPUTE_BUDGET_IX)
+    );
 
     const txSig = await program.provider.sendAndConfirm(tx, [], CONFIRM_OPTS);
-    console.log("Reinvest", txSig);
+    console.log("Rebalance", txSig);
   });
 
   it("Failing swap in non-set market", async () => {
